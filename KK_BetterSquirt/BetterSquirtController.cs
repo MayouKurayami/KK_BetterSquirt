@@ -65,7 +65,6 @@ namespace KK_BetterSquirt
 
 		protected override void OnEndH(BaseLoader proc, HFlag hFlag, bool vr)
 		{
-			SquirtParticleInfos.Clear();
 			_fancyParticlesLoaded = false;
 		}
 
