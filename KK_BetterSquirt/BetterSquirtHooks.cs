@@ -12,12 +12,12 @@ namespace KK_BetterSquirt
 		[HarmonyPatch(typeof(HActionBase), nameof(HActionBase.SetPlay))]
 		public static void SetPlayPost(string _nextAnimation)
 		{
-			if (BetterSquirtController.CheckSquirtCondition())
+			if (BetterSquirtController.CheckOrgasmSquirtCondition())
 			{
 				if (_nextAnimation.Contains("Start"))
-					BetterSquirtController.Squirt(sound: false);
+					BetterSquirtController.Squirt(sound: false, trigger: BetterSquirtController.TriggerType.Orgasm);
 				else if (_nextAnimation == "Orgasm") //masturbation orgasm
-					BetterSquirtController.Squirt(sound: true, softSE: false);
+					BetterSquirtController.Squirt(sound: true, trigger: BetterSquirtController.TriggerType.Orgasm);
 			}
 		}
 
@@ -30,7 +30,7 @@ namespace KK_BetterSquirt
 		{
 			if (_particle == 2 && BetterSquirtPlugin.SquirtHD.Value)
 			{
-				__result = BetterSquirtController.Squirt(sound: false);
+				__result = BetterSquirtController.Squirt(sound: false, trigger: BetterSquirtController.TriggerType.Orgasm);
 				return false;
 			}		
 			return true;			
@@ -44,7 +44,7 @@ namespace KK_BetterSquirt
 		[HarmonyPatch(typeof(GlobalMethod.ShuffleRand), nameof(GlobalMethod.ShuffleRand.Get))]
 		public static bool GetRandSioPre(ref int __result, GlobalMethod.ShuffleRand __instance)
 		{		
-			if (BetterSquirtController.CheckSquirtCondition() && BetterSquirtController.CheckRandSioReference(__instance))
+			if (BetterSquirtController.CheckOrgasmSquirtCondition(__instance))
 			{
 				__result = 1;
 				return false;

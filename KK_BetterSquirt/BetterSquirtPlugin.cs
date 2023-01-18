@@ -27,6 +27,8 @@ namespace KK_BetterSquirt
 		internal static ConfigEntry<SquirtMode> SquirtBehavior { get; private set; }
 		internal static ConfigEntry<KeyboardShortcut> SquirtKey { get; private set; }
 		internal static ConfigEntry<bool> SquirtHD { get; private set; }
+		internal static ConfigEntry<Behavior> SquirtDuration { get; private set; }
+		internal static ConfigEntry<Behavior> SquirtAmount { get; private set; }
 
 		private void Awake()
         {
@@ -40,10 +42,14 @@ namespace KK_BetterSquirt
 				"\n\nIf Girls is Aroused: Girl squirts during orgasm if excitement gauge is over 70" +
 				"\n\nAlways: Girl always squirts during orgasm");
 
+			SquirtKey = Config.Bind(
 				section: "",
+				key: "Squirt Shortcut Key",
+				defaultValue: KeyboardShortcut.Empty,
+				"Key to manually trigger squirting");
 
 			SquirtHD = Config.Bind(
-				section: "",
+				section: "Better Squirt",
 				key: "Enable Improved Particles",
 				defaultValue: true,
 				"Replaces vanilla squirt with a more realistic one");
@@ -53,14 +59,21 @@ namespace KK_BetterSquirt
 					BetterSquirtController.UpdateParticles(
 						BetterSquirtController.GetSquirtParticleInfo(
 							FindObjectOfType(Type.GetType("VRHScene, Assembly-CSharp") ?? Type.GetType("HSceneProc, Assembly-CSharp"))));
-						
 			};
 
-			SquirtKey = Config.Bind(
-				section: "",
-				key: "Squirt Shortcut Key",
-				defaultValue: KeyboardShortcut.Empty,
-				"Key to manually trigger squirting");
+			SquirtDuration = Config.Bind(
+				section: "Better Squirt",
+				key: "Manual Squirt Duration",
+				defaultValue: Behavior.Auto,
+				"Duration of the squirts when triggered manually by the hotkey." +
+				"\nIn auto mode it depends on girl's excitement gauge and other contextual factors");
+
+			SquirtAmount = Config.Bind(
+				section: "Better Squirt",
+				key: "Manual Squirt Amount",
+				defaultValue: Behavior.Auto,
+				"Amount and volume of the squirts when triggered manually by the hotkey." +
+				"\nIn auto mode it depends on girl's excitement gauge and other contextual factors");
 
 
 
@@ -75,6 +88,14 @@ namespace KK_BetterSquirt
 			[Description("If Girl is Aroused")]
 			Aroused,
 			Always
+		}
+
+		internal enum Behavior
+		{
+			Auto,
+			Random,
+			Minimum,
+			Maximum
 		}
 	}
 }
