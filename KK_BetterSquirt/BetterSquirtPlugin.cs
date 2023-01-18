@@ -26,7 +26,6 @@ namespace KK_BetterSquirt
         internal static new ManualLogSource Logger;
 		internal static ConfigEntry<SquirtMode> SquirtBehavior { get; private set; }
 		internal static ConfigEntry<KeyboardShortcut> SquirtKey { get; private set; }
-		//internal static ConfigEntry<bool> SquirtSound { get; private set; }
 		internal static ConfigEntry<bool> SquirtHD { get; private set; }
 
 		private void Awake()
@@ -35,22 +34,17 @@ namespace KK_BetterSquirt
 
 			SquirtBehavior = Config.Bind(
 				section: "",
-				key: "Squirt: Behavior",
+				key: "Squirt Behavior",
 				defaultValue: SquirtMode.Aroused,
 				"Vanilla: Use game's default behavior: only squirting in caress mode." +
 				"\n\nIf Girls is Aroused: Girl squirts during orgasm if excitement gauge is over 70" +
 				"\n\nAlways: Girl always squirts during orgasm");
 
-			/*SquirtSound = Config.Bind(
 				section: "",
-				key: "Squirt: Sound",
-				defaultValue: true,
-				"Whether manually triggered squirts by the keyboard shortcut will have any sound effect" +
-				"\nThis does not affect squirts triggered by orgasms");*/
 
 			SquirtHD = Config.Bind(
 				section: "",
-				key: "Squirt: Improved Particles",
+				key: "Enable Improved Particles",
 				defaultValue: true,
 				"Replaces vanilla squirt with a more realistic one");
 			SquirtHD.SettingChanged += (sender, args) => 

@@ -14,7 +14,7 @@ namespace KK_BetterSquirt
 	public class BetterSquirtController : GameCustomFunctionController
 	{
 		private static List<ParticleInfo> SquirtParticleInfos { get; set; }
-		private static HFlag Hflag { get; set; }
+		private static HFlag flags { get; set; }
 		private static object _randSio;
 		private static bool _fancyParticlesLoaded = false;
 
@@ -36,7 +36,7 @@ namespace KK_BetterSquirt
 
 		protected override void OnStartH(BaseLoader proc, HFlag hFlag, bool vr)
 		{
-			Hflag = hFlag;
+			flags = hFlag;
 			Traverse
 				.Create(proc)
 				.Field("lstProc")
@@ -49,6 +49,12 @@ namespace KK_BetterSquirt
 
 			if (SquirtHD.Value) 
 				UpdateParticles(SquirtParticleInfos);
+		}
+
+		protected override void OnEndH(BaseLoader proc, HFlag hFlag, bool vr)
+		{
+			SquirtParticleInfos.Clear();
+			_fancyParticlesLoaded = false;
 		}
 
 
@@ -140,7 +146,7 @@ namespace KK_BetterSquirt
 				foreach (var particleInfo in particleInfos)
 				{
 					GameObject vanillaAsset = CommonLib.LoadAsset<GameObject>(particleInfo.assetPath, particleInfo.file, clone: true, string.Empty);
-					Hflag.hashAssetBundle.Add(particleInfo.assetPath);
+					flags.hashAssetBundle.Add(particleInfo.assetPath);
 					if (vanillaAsset != null)
 					{
 						GameObject oldGameObject = particleInfo.particle.gameObject;
