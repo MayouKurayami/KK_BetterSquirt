@@ -26,6 +26,7 @@ namespace KK_BetterSquirt
         internal static new ManualLogSource Logger;
 		internal static ConfigEntry<SquirtMode> SquirtBehavior { get; private set; }
 		internal static ConfigEntry<KeyboardShortcut> SquirtKey { get; private set; }
+		internal static ConfigEntry<int> TouchChance { get; private set; }
 		internal static ConfigEntry<bool> SquirtHD { get; private set; }
 		internal static ConfigEntry<Behavior> SquirtDuration { get; private set; }
 		internal static ConfigEntry<Behavior> SquirtAmount { get; private set; }
@@ -48,12 +49,20 @@ namespace KK_BetterSquirt
 				defaultValue: KeyboardShortcut.Empty,
 				"Key to manually trigger squirting");
 
+			TouchChance = Config.Bind(
+				section: "",
+				key: "Touch Sensitivity",
+				defaultValue: 30,
+				new ConfigDescription("Chance of triggering squirts by touching the girl's pussy." +
+				"\nSet to 0 to disable this feature.",
+					new AcceptableValueRange<int>(0, 100)));
+
 			SquirtHD = Config.Bind(
 				section: "Better Squirt",
 				key: "Enable Improved Particles",
 				defaultValue: true,
 				"Replaces vanilla squirt with a more realistic one");
-			SquirtHD.SettingChanged += (sender, args) => 
+			SquirtHD.SettingChanged += (sender, args) =>
 			{
 				if (GameAPI.InsideHScene)
 					BetterSquirtController.UpdateParticles(
@@ -78,7 +87,9 @@ namespace KK_BetterSquirt
 
 
 			GameAPI.RegisterExtraBehaviour<BetterSquirtController>(GUID);
-			Harmony.CreateAndPatchAll(typeof(BetterSquirtHooks), GUID);
+			var harmonyInstance = Harmony.CreateAndPatchAll(typeof(BetterSquirtHooks), GUID);
+
+			BetterSquirtHooks.PatchVRHooks(harmonyInstance);
 		}
 
 		internal enum SquirtMode

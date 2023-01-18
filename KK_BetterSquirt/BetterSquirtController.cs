@@ -20,20 +20,29 @@ namespace KK_BetterSquirt
 		private static HFlag flags { get; set; }
 		private static object _randSio;
 		private static bool _fancyParticlesLoaded = false;
+		private static Vector2 _lastDragVector = new Vector2(0, 0);
+		private static float _touchCoolDown = 0;
 
 		private const float DURATION_FULL = 4.8f;
 		private const float DURATION_MIN = 1f;
+		private const float COOLDOWN_TIME = 1f;
 		private const string ASSETBUNDLE = "addcustomeffect.unity3d";
 		private const string ASSETNAME = "SprayRefractive";
 
-		
+
 		private void Update()
 		{
-			if (!GameAPI.InsideHScene)
+			if (flags == null)
 				return;
 
 			if (Input.GetKeyDown(SquirtKey.Value.MainKey) && SquirtKey.Value.Modifiers.All(x => Input.GetKey(x)))
 				Squirt(softSE: true);
+
+			if (flags.drag)
+				OnDrag();
+
+			if (_touchCoolDown > 0)
+			_touchCoolDown -= Time.deltaTime;
 		}
 
 
@@ -190,7 +199,7 @@ namespace KK_BetterSquirt
 		}
 
 
-		internal static bool Squirt(bool sound = true, bool softSE = false, TriggerType trigger = TriggerType.Manual)
+		internal static bool Squirt(bool sound = true, bool softSE = false, TriggerType trigger = TriggerType.Manual, ChaControl female = null)
 		{	
 			bool anyParticlePlayed = false;
 			//Default values here are for when behavior is set to random, so we don't need to check for that  
@@ -208,6 +217,8 @@ namespace KK_BetterSquirt
 					BetterSquirtPlugin.Logger.LogError("Null reference in SquirtParticleInfos list");
 					continue;
 				}
+				if (female != null && !particleInfo.particle.transform.IsChildOf(female.transform))
+					continue;
 
 				//Magic numbers below can be adjusted to taste
 				if (trigger == TriggerType.Orgasm)
@@ -440,6 +451,64 @@ namespace KK_BetterSquirt
 		{
 			return randSio == _randSio && CheckOrgasmSquirtCondition();
 		}
+
+		private static void OnDrag()
+		{
+			//check to see if the user has dragged the vagina by more than a certain x and y amount, if yes then record the current coordinates as the new starting point for calculating the next threshold, and allow the squirting procedure to proceed
+			//x and y values are normalized, and since there is much less "wiggle room" for x than y, their thresholds are set independently
+			Vector2 currentDrag = flags.xy[(int)HandCtrl.AibuColliderKind.kokan - 2];
+			if (Mathf.Abs(currentDrag.y - _lastDragVector.y) > 0.4f)
+				_lastDragVector.y = currentDrag.y;
+			else if (Mathf.Abs(currentDrag.x - _lastDragVector.x) > 0.95f)
+				_lastDragVector.x = currentDrag.x;
+			else
+				return;
+
+			if (_touchCoolDown <= 0)
+			{
+				_touchCoolDown = COOLDOWN_TIME;
+				if (Random.Range(0, 100) < TouchChance.Value)
+					Squirt(softSE: true, trigger: TriggerType.Touch);		
+			}	
+		}
+
+		internal static void OnBoop(MonoBehaviour handCtrl, HandCtrl.AibuColliderKind touchArea)
+		{
+			if (touchArea == HandCtrl.AibuColliderKind.reac_bodydown && _touchCoolDown <= 0)
+			{
+				_touchCoolDown = COOLDOWN_TIME;
+				//Use an asymptotic regression model to make the chance of squirting by booping/spanking non-linear.
+				//This increases the chance of squirt at low values of user configured probability, making it easier to get the girl to squirt by spanking
+				if (Random.Range(0, 100) < 100 - (100 * Mathf.Exp(0 - (TouchChance.Value / 40f))))
+					Squirt(softSE: true, trigger: TriggerType.Touch, female: Traverse.Create(handCtrl).Field("female").GetValue<ChaControl>());
+			}
+		}
+
+
+		internal static void OnCaressClick(MonoBehaviour handCtrl)
+		{
+			if (_touchCoolDown <= 0)
+			{
+				_touchCoolDown = COOLDOWN_TIME;
+				if (Random.Range(0, 100) < TouchChance.Value && 
+					Traverse.Create(handCtrl).Field("selectKindTouch").GetValue<HandCtrl.AibuColliderKind>() == HandCtrl.AibuColliderKind.kokan)
+				{
+					Squirt(softSE: true, trigger: TriggerType.Touch, female: Traverse.Create(handCtrl).Field("female").GetValue<ChaControl>());		
+				}			
+			}		
+		}
+
+		internal static void OnDragClick()
+		{
+			//Checking for flags.drag not being true so that the condition is only met when the user is clicking instead of dragging, as the latter is already taken care of by OnDrag()
+			if (!flags.drag && _touchCoolDown <= 0)
+			{
+				_touchCoolDown = COOLDOWN_TIME;
+				if (Random.Range(0, 100) < TouchChance.Value)
+					Squirt(softSE: true, trigger: TriggerType.Touch);	
+			}			
+		}
+
 
 		internal enum TriggerType
 		{

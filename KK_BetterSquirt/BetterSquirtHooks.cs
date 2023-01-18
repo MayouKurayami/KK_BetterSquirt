@@ -1,10 +1,27 @@
 ﻿using HarmonyLib;
+using System;
+using UnityEngine;
 using static HandCtrl;
 
 namespace KK_BetterSquirt
 {
 	internal static class BetterSquirtHooks
 	{
+		internal static void PatchVRHooks(Harmony harmonyInstance)
+		{
+			Type vrHandType = Type.GetType("VRHandCtrl, Assembly-CSharp");
+			if (vrHandType == null)
+				return;
+			harmonyInstance.Patch(
+				AccessTools.Method(vrHandType, "Reaction"),
+				prefix: new HarmonyMethod(typeof(BetterSquirtHooks), nameof(ReactionPre)));
+			harmonyInstance.Patch(
+				AccessTools.Method(vrHandType, nameof(HandCtrl.JudgeProc)),
+				prefix: new HarmonyMethod(typeof(BetterSquirtHooks), nameof(JudgeProcPre)));
+
+		}
+
+		
 		/// <summary>
 		/// If all conditions are met, call Squirt() when the game enters any orgasm animation
 		/// </summary>
@@ -50,6 +67,38 @@ namespace KK_BetterSquirt
 				return false;
 			}
 			return true;
+		}
+
+		/// <summary>
+		/// When the girl flinches, from touching during intercourse or touching non-caress body parts during aibu, a.k.a. "spank".
+		/// </summary>
+		[HarmonyPrefix]
+		[HarmonyPatch(typeof(HandCtrl), "Reaction")]
+		public static void ReactionPre(MonoBehaviour __instance, int _kindTouch)
+		{
+			BetterSquirtController.OnBoop(__instance, (AibuColliderKind)_kindTouch);
+		}
+
+		/// <summary>
+		/// When caress is started by touching one of the caress body parts, and when clicking those body parts intermittently
+		/// </summary>
+		[HarmonyPrefix]
+		[HarmonyPatch(typeof(HandCtrl), "JudgeProc")]
+		public static void JudgeProcPre(MonoBehaviour __instance)
+		{
+			BetterSquirtController.OnCaressClick(__instance);
+		}
+
+		/// <summary>
+		/// When clicking a caress body part rapidly, the game stays in "drag mode" and thus not triggering JudgeProc()
+		/// HFlag.SetSelectArea is called several times per click under that condition. (redundant triggering of squirts are prevented by the touchCooldown timer in BetterSquirtController)
+		/// </summary>
+		[HarmonyPrefix]
+		[HarmonyPatch(typeof(HFlag), "SetSelectArea")]
+		public static void SetSelectAreaPre(int _area)
+		{
+			if (_area == 2)
+				BetterSquirtController.OnDragClick();
 		}
 	}
 }
