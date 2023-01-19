@@ -39,8 +39,8 @@ namespace KK_BetterSquirt
 				section: "",
 				key: "Squirt Behavior",
 				defaultValue: SquirtMode.Aroused,
-				"Vanilla: Use game's default behavior: only squirting in caress mode." +
-				"\n\nIf Girls is Aroused: Girl squirts during orgasm if excitement gauge is over 70" +
+				"Default Behavior: Use the game's default behavior and only squirt occasionally during orgasm in caress mode" +
+				"\n\nIf Girls is Aroused: Girl squirts during orgasm if her excitement gauge is over 70" +
 				"\n\nAlways: Girl always squirts during orgasm");
 
 			SquirtKey = Config.Bind(
@@ -53,13 +53,13 @@ namespace KK_BetterSquirt
 				section: "",
 				key: "Touch Sensitivity",
 				defaultValue: 30,
-				new ConfigDescription("Chance of triggering squirts by touching the girl's pussy." +
-				"\nSet to 0 to disable this feature.",
+				new ConfigDescription("Chance of triggering squirts when touching the girl's vagina/crotch" +
+				"\nSet to 0 to disable this feature",
 					new AcceptableValueRange<int>(0, 100)));
 
 			SquirtHD = Config.Bind(
 				section: "Better Squirt",
-				key: "Enable Improved Particles",
+				key: "Improved Particles",
 				defaultValue: true,
 				"Replaces vanilla squirt with a more realistic one");
 			SquirtHD.SettingChanged += (sender, args) =>
@@ -73,15 +73,15 @@ namespace KK_BetterSquirt
 				section: "Better Squirt",
 				key: "Manual Squirt Duration",
 				defaultValue: Behavior.Auto,
-				"Duration of the squirts when triggered manually by the hotkey." +
-				"\nIn auto mode it depends on girl's excitement gauge and other contextual factors");
+				"Duration of the improved squirting when triggered manually by the hotkey" +
+				"\n\nIn auto mode it depends on the girl's excitement gauge");
 
 			SquirtAmount = Config.Bind(
 				section: "Better Squirt",
 				key: "Manual Squirt Amount",
 				defaultValue: Behavior.Auto,
-				"Amount and volume of the squirts when triggered manually by the hotkey." +
-				"\nIn auto mode it depends on girl's excitement gauge and other contextual factors");
+				"Amount and volume of the improved squirting when triggered manually by the hotkey" +
+				"\n\nIn auto mode it depends on the girl's excitement gauge");
 
 
 
