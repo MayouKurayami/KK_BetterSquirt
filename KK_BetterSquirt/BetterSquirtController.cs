@@ -16,7 +16,7 @@ namespace KK_BetterSquirt
 {
 	public class BetterSquirtController : GameCustomFunctionController
 	{
-		private static List<ParticleInfo> SquirtParticleInfos { get; set; }
+		public static List<ParticleSystem> SquirtParticles { get; private set; }
 		private static HFlag flags { get; set; }
 		private static object _randSio;
 		private static bool _fancyParticlesLoaded = false;
@@ -57,10 +57,7 @@ namespace KK_BetterSquirt
 				.FirstOrDefault()
 				.GetFieldValue("randSio", out _randSio);
 
-			SquirtParticleInfos = GetSquirtParticleInfo(proc);
-
-			if (SquirtHD.Value) 
-				UpdateParticles(SquirtParticleInfos);
+			InitParticles(proc);
 		}
 
 		protected override void OnEndH(BaseLoader proc, HFlag hFlag, bool vr)
@@ -69,33 +66,7 @@ namespace KK_BetterSquirt
 		}
 
 
-		internal static List<ParticleInfo> GetSquirtParticleInfo(object proc)
-		{
-			if (!GameAPI.InsideHScene)
-			{
-				BetterSquirtPlugin.Logger.LogDebug("Not in H. No particles to access");
-				return null;
-			}		
-			string[] fields = { "particle", "particle1" };
-
-			var particleInfoList = fields
-				.Select(field => Traverse.Create(proc).Field(field).GetValue<HParticleCtrl>())
-				.Where(partCtrl => partCtrl != null)
-				.Select(partCtrl => Traverse.Create(partCtrl).Field("dicParticle").GetValue<Dictionary<int, ParticleInfo>>())
-				.Where(dic => dic != null && dic.TryGetValue(2, out ParticleInfo pInfo) && pInfo?.particle != null)
-				.Select(dic => dic[2]);
-
-			if (particleInfoList.Count() == 0)
-			{
-				BetterSquirtPlugin.Logger.LogDebug("Failed to access squirt ParticleInfo");
-				return null;
-			}
-
-			return particleInfoList.ToList();			
-		}
-
-
-		internal static bool UpdateParticles(List<ParticleInfo> particleInfos)
+		internal static bool InitParticles(object proc)
 		{
 			if (!GameAPI.InsideHScene)
 			{
@@ -103,7 +74,33 @@ namespace KK_BetterSquirt
 				return false;
 			}
 
-			if (SquirtHD.Value)
+			string[] fields = { "particle", "particle1" };
+			List<ParticleSystem> vanillaParticles = fields
+				.Select(field => Traverse.Create(proc).Field(field).GetValue<HParticleCtrl>())
+				.Where(partCtrl => partCtrl != null)
+				.Select(partCtrl => Traverse.Create(partCtrl).Field("dicParticle").GetValue<Dictionary<int, ParticleInfo>>())
+				.Where(dic => dic != null && dic.TryGetValue(2, out ParticleInfo pInfo) && pInfo?.particle != null)
+				.Select(dic => dic[2].particle)
+				.ToList();
+
+			if (vanillaParticles.Count() == 0)
+			{
+				BetterSquirtPlugin.Logger.LogDebug("Failed to access vanilla squirt particles");
+				return false;
+			}		
+			
+			if (!SquirtHD.Value)
+			{
+				foreach (ParticleSystem particle in SquirtParticles)
+				{
+					//var fancyParticle = particle.transform.parent.Cast<Transform>().FirstOrDefault(t => t.name == ASSETNAME);
+					if (particle != null && particle.name == ASSETNAME)
+						Destroy(particle.gameObject);
+				}
+				SquirtParticles = vanillaParticles;		
+				_fancyParticlesLoaded = false;
+			}
+			else
 			{
 				//Attempt to load from zipmod first
 				GameObject asset = CommonLib.LoadAsset<GameObject>($"studio/{ASSETBUNDLE}", ASSETNAME);
@@ -150,48 +147,21 @@ namespace KK_BetterSquirt
 					renderer.material.renderQueue = 3080;
 
 
-				foreach (var particleInfo in particleInfos)
+				SquirtParticles = new List<ParticleSystem>();
+				foreach (var particle in vanillaParticles)
 				{
 					GameObject newGameObject = Instantiate(asset);
 					newGameObject.name = asset.name;
-					
-					GameObject oldGameObject = particleInfo.particle.gameObject;
-					newGameObject.transform.SetParent(particleInfo.particle.gameObject.transform.parent);
-
+					newGameObject.transform.SetParent(particle.transform.parent);
 					//Adjust the position and rotation of the new Particle System to make sure the stream comes out of the manko at the right place and the right angle
 					newGameObject.transform.localPosition = new Vector3(-0.01f, 0f, 0f);
 					newGameObject.transform.localRotation = Quaternion.Euler(new Vector3(60f, 0, 0f));
 					newGameObject.transform.localScale = Vector3.one;
-					particleInfo.particle = newGameObject.GetComponent<ParticleSystem>();
-					Destroy(oldGameObject);
+					SquirtParticles.Add(newGameObject.GetComponent<ParticleSystem>());
 				}
 
 				_fancyParticlesLoaded = true;
 				Destroy(asset);
-			}
-			else
-			{
-				foreach (var particleInfo in particleInfos)
-				{
-					GameObject vanillaAsset = CommonLib.LoadAsset<GameObject>(particleInfo.assetPath, particleInfo.file, clone: true, string.Empty);
-					flags.hashAssetBundle.Add(particleInfo.assetPath);
-					if (vanillaAsset != null)
-					{
-						GameObject oldGameObject = particleInfo.particle.gameObject;
-						vanillaAsset.transform.parent = oldGameObject.transform.parent;
-						vanillaAsset.transform.localPosition = particleInfo.pos;
-						vanillaAsset.transform.localRotation = Quaternion.Euler(particleInfo.rot);
-						vanillaAsset.transform.localScale = Vector3.one;
-						particleInfo.particle = vanillaAsset.GetComponent<ParticleSystem>();
-						Destroy(oldGameObject);
-					}
-					else
-					{
-						BetterSquirtPlugin.Logger.LogError("Failed to load vanilla particles from asset");
-						return false;
-					}
-				}
-				_fancyParticlesLoaded = false;
 			}
 
 			return true;
@@ -209,14 +179,14 @@ namespace KK_BetterSquirt
 			
 
 			//int femaleIndex = (flags.mode == HFlag.EMode.houshi3P || flags.mode == HFlag.EMode.sonyu3P) ? flags.nowAnimationInfo.id % 2 : 0;
-			foreach (ParticleInfo particleInfo in SquirtParticleInfos)
+			foreach (ParticleSystem particle in SquirtParticles)
 			{
-				if (particleInfo == null || particleInfo.particle == null)
+				if (particle == null)
 				{
 					BetterSquirtPlugin.Logger.LogError("Null reference in SquirtParticleInfos list");
 					continue;
 				}
-				if (female != null && !particleInfo.particle.transform.IsChildOf(female.transform))
+				if (female != null && !particle.transform.IsChildOf(female.transform))
 					continue;
 
 				//Magic numbers below can be adjusted to taste
@@ -272,9 +242,9 @@ namespace KK_BetterSquirt
 				if (SquirtHD.Value && _fancyParticlesLoaded)
 				{
 					//Magic numbers for the minimum and maximum initial velocity are purely based on taste
-					ApplyCurve(particleInfo.particle.gameObject, emissionCurve, speedCurve, 5.5f, 6.5f);
+					ApplyCurve(particle.gameObject, emissionCurve, speedCurve, 5.5f, 6.5f);
 
-					foreach (GameObject gameObject in particleInfo.particle.gameObject.Children())
+					foreach (GameObject gameObject in particle.gameObject.Children())
 					{
 						if (gameObject.name == "SubWaterStreamEffectCnstSpd5")
 						{
@@ -290,8 +260,8 @@ namespace KK_BetterSquirt
 					}
 				}
 
-				particleInfo.particle.Simulate(0f);
-				particleInfo.particle.Play();
+				particle.Simulate(0f);
+				particle.Play();
 				anyParticlePlayed = true;
 				
 
@@ -303,7 +273,7 @@ namespace KK_BetterSquirt
 						assetBundleName = softSE ? @"sound/data/se/h/00/00_00.unity3d" : @"sound/data/se/h/12/12_00.unity3d",
 						assetName = softSE ? "khse_10" : "hse_siofuki",
 					};
-					Transform referenceInfo = particleInfo.particle.transform.parent;
+					Transform referenceInfo = particle.transform.parent;
 
 					if (softSE && SquirtHD.Value)
 					{

@@ -65,9 +65,8 @@ namespace KK_BetterSquirt
 			SquirtHD.SettingChanged += (sender, args) =>
 			{
 				if (GameAPI.InsideHScene)
-					BetterSquirtController.UpdateParticles(
-						BetterSquirtController.GetSquirtParticleInfo(
-							FindObjectOfType(Type.GetType("VRHScene, Assembly-CSharp") ?? Type.GetType("HSceneProc, Assembly-CSharp"))));
+					BetterSquirtController.InitParticles(		
+						FindObjectOfType(Type.GetType("VRHScene, Assembly-CSharp") ?? Type.GetType("HSceneProc, Assembly-CSharp")));
 			};
 
 			SquirtDuration = Config.Bind(
