@@ -263,7 +263,7 @@ namespace KK_BetterSquirt
 				particle.Simulate(0f);
 				particle.Play();
 				anyParticlePlayed = true;
-				
+				_touchCoolDown = Mathf.Max(_touchCoolDown, duration);		
 
 				if (sound)
 				{
@@ -445,11 +445,9 @@ namespace KK_BetterSquirt
 		{
 			if (touchArea == HandCtrl.AibuColliderKind.reac_bodydown && _touchCoolDown <= 0)
 			{
-				_touchCoolDown = COOLDOWN_TIME;
-				//Use an asymptotic regression model to make the chance of squirting by booping/spanking non-linear.
-				//This increases the chance of squirt at low values of user configured probability, making it easier to get the girl to squirt by spanking
-				if (Random.Range(0, 100) < 100 - (100 * Mathf.Exp(0 - (TouchChance.Value / 40f))))
+				if (Random.Range(0, 100) < TouchChance.Value)
 					Squirt(softSE: true, trigger: TriggerType.Touch, female: Traverse.Create(handCtrl).Field("female").GetValue<ChaControl>());
+				//Not setting the touchCooldown timer here because it's less likely for this to be spammed unless the user is intentionally trying to invoke squirt, in which case said wish shall be granted
 			}
 		}
 
@@ -467,10 +465,10 @@ namespace KK_BetterSquirt
 			}		
 		}
 
-		internal static void OnDragClick()
+		//Only applicable when not in VR
+		internal static void OnDragClick(int _area)
 		{
-			//Checking for flags.drag not being true so that the condition is only met when the user is clicking instead of dragging, as the latter is already taken care of by OnDrag()
-			if (!flags.drag && _touchCoolDown <= 0)
+			if (_area == 2 && _touchCoolDown <= 0 && Input.GetMouseButtonDown(0))
 			{
 				_touchCoolDown = COOLDOWN_TIME;
 				if (Random.Range(0, 100) < TouchChance.Value)

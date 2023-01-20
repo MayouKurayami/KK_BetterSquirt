@@ -89,16 +89,15 @@ namespace KK_BetterSquirt
 			BetterSquirtController.OnCaressClick(__instance);
 		}
 
-		/// <summary>
-		/// When clicking a caress body part rapidly, the game stays in "drag mode" and thus not triggering JudgeProc()
-		/// HFlag.SetSelectArea is called several times per click under that condition. (redundant triggering of squirts are prevented by the touchCooldown timer in BetterSquirtController)
-		/// </summary>
+		// When clicking a caress body part rapidly, the game stays in "drag mode" and thus not triggering JudgeProc(). 
+		// HFlag.SetSelectArea() is called several times per click under that condition. 
+		// (redundant triggering of squirts are prevented by additional checks in OnDragClick()).
+		// This situation is only relevant when not in VR
 		[HarmonyPrefix]
 		[HarmonyPatch(typeof(HFlag), "SetSelectArea")]
 		public static void SetSelectAreaPre(int _area)
 		{
-			if (_area == 2)
-				BetterSquirtController.OnDragClick();
+			BetterSquirtController.OnDragClick(_area);
 		}
 	}
 }
