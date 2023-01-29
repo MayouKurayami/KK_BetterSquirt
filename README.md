@@ -16,7 +16,7 @@
 
 - **Squirt Shortcut Key** - Key to manually trigger squirting **(Default: None)**  
 
-- **Touch Sensitivity** - Chance of triggering squirts when touching the girl's vagina/crotch  
+- **Touch Sensitivity** - How frequently squirts triggered when touching the girl's vagina/crotch  
   Set to 0 to disable this feature **(Default: 30)**
 
 - **Improved Particles** - Replaces vanilla squirt with a more realistic one **(Default: Enabled)**
@@ -30,6 +30,8 @@
 
 
 ## Notes and Limitations
+- This plugin is for Koikatsu, not Koikatsu Sunshine
+
 - Supports official VR (JP and Steam)
 
 - Unknown compatibility with kPlug  

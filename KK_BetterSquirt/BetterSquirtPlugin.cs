@@ -53,7 +53,7 @@ namespace KK_BetterSquirt
 				section: "",
 				key: "Touch Sensitivity",
 				defaultValue: 30,
-				new ConfigDescription("Chance of triggering squirts when touching the girl's vagina/crotch" +
+				new ConfigDescription("How frequently squirts are triggered when touching the girl's vagina/crotch" +
 				"\nSet to 0 to disable this feature",
 					new AcceptableValueRange<int>(0, 100)));
 
