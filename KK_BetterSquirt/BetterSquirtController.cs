@@ -20,12 +20,13 @@ namespace KK_BetterSquirt
 		private static HFlag flags { get; set; }
 		private static object _randSio;
 		private static bool _fancyParticlesLoaded = false;
-		private static Vector2 _lastDragVector = new Vector2(0, 0);
-		private static float _touchCoolDown = 0;
+		private static Vector2 _lastDragVector;
+		private static float _touchAmount = 0;
+		private static float _squirtCooldown = 0;
 
 		private const float DURATION_FULL = 4.8f;
 		private const float DURATION_MIN = 1f;
-		private const float COOLDOWN_TIME = 1f;
+		private const float TOUCH_THRESHOLD = 7f;
 		private const string ASSETBUNDLE = "addcustomeffect.unity3d";
 		private const string ASSETNAME = "SprayRefractive";
 
@@ -41,8 +42,11 @@ namespace KK_BetterSquirt
 			if (flags.drag)
 				OnDrag();
 
-			if (_touchCoolDown > 0)
-			_touchCoolDown -= Time.deltaTime;
+			if (_squirtCooldown > 0)
+				_squirtCooldown -= Time.deltaTime;
+
+			if (_touchAmount > 0)
+				_touchAmount -= Time.deltaTime;
 		}
 
 
@@ -58,6 +62,7 @@ namespace KK_BetterSquirt
 				.GetFieldValue("randSio", out _randSio);
 
 			InitParticles(proc);
+			_lastDragVector = new Vector2(0.5f, 0.5f);
 		}
 
 		protected override void OnEndH(BaseLoader proc, HFlag hFlag, bool vr)
@@ -169,7 +174,10 @@ namespace KK_BetterSquirt
 
 
 		internal static bool Squirt(bool sound = true, bool softSE = false, TriggerType trigger = TriggerType.Manual, ChaControl female = null)
-		{	
+		{
+			if (_squirtCooldown > 0 && trigger != TriggerType.Manual)
+				return false;
+			
 			bool anyParticlePlayed = false;
 			//Default values here are for when behavior is set to random, so we don't need to check for that  
 			float min = DURATION_MIN;
@@ -263,7 +271,7 @@ namespace KK_BetterSquirt
 				particle.Simulate(0f);
 				particle.Play();
 				anyParticlePlayed = true;
-				_touchCoolDown = Mathf.Max(_touchCoolDown, duration);		
+				_squirtCooldown = Mathf.Max(_squirtCooldown, duration);		
 
 				if (sound)
 				{
@@ -421,58 +429,57 @@ namespace KK_BetterSquirt
 			return randSio == _randSio && CheckOrgasmSquirtCondition();
 		}
 
+		/// <summary>
+		/// Accumulate the amount the user has dragged the vagina for and check if it has exceeded the threshold for the squirting procedure to proceed
+		/// </summary>
 		private static void OnDrag()
-		{
-			//check to see if the user has dragged the vagina by more than a certain x and y amount, if yes then record the current coordinates as the new starting point for calculating the next threshold, and allow the squirting procedure to proceed
-			//x and y values are normalized, and since there is much less "wiggle room" for x than y, their thresholds are set independently
+		{		
 			Vector2 currentDrag = flags.xy[(int)HandCtrl.AibuColliderKind.kokan - 2];
-			if (Mathf.Abs(currentDrag.y - _lastDragVector.y) > 0.4f)
-				_lastDragVector.y = currentDrag.y;
-			else if (Mathf.Abs(currentDrag.x - _lastDragVector.x) > 0.95f)
-				_lastDragVector.x = currentDrag.x;
-			else
-				return;
+			//truncate the x and y values to two decimal places to prevent superfluous values being added to _touchAmount caused by the imprecise nature of floats
+			_touchAmount += ((int)(Mathf.Abs(currentDrag.y - _lastDragVector.y) * 100) + (int)(Mathf.Abs(currentDrag.x - _lastDragVector.x) * 100)) / 100f;
+			_lastDragVector = currentDrag;
 
-			if (_touchCoolDown <= 0)
+			if (_touchAmount > TOUCH_THRESHOLD)
 			{
-				_touchCoolDown = COOLDOWN_TIME;
-				if (Random.Range(0, 100) < TouchChance.Value)
+				_touchAmount = 0;
+				if (Random.Range(0, 100) < TouchChance.Value && _squirtCooldown <= 0)
 					Squirt(softSE: true, trigger: TriggerType.Touch);		
 			}	
 		}
 
 		internal static void OnBoop(MonoBehaviour handCtrl, HandCtrl.AibuColliderKind touchArea)
 		{
-			if (touchArea == HandCtrl.AibuColliderKind.reac_bodydown && _touchCoolDown <= 0)
+			if (touchArea == HandCtrl.AibuColliderKind.reac_bodydown && Random.Range(0, 100) < TouchChance.Value)
 			{
-				if (Random.Range(0, 100) < TouchChance.Value)
-					Squirt(softSE: true, trigger: TriggerType.Touch, female: Traverse.Create(handCtrl).Field("female").GetValue<ChaControl>());
-				//Not setting the touchCooldown timer here because it's less likely for this to be spammed unless the user is intentionally trying to invoke squirt, in which case said wish shall be granted
+				Squirt(softSE: true, trigger: TriggerType.Touch, female: Traverse.Create(handCtrl).Field("female").GetValue<ChaControl>());			
 			}
 		}
 
 
-		internal static void OnCaressClick(MonoBehaviour handCtrl)
+		internal static void OnCaressStart(MonoBehaviour handCtrl)
 		{
-			if (_touchCoolDown <= 0)
+			if (Random.Range(0, 100) < TouchChance.Value && 
+				Traverse.Create(handCtrl).Field("selectKindTouch").GetValue<HandCtrl.AibuColliderKind>() == HandCtrl.AibuColliderKind.kokan)
 			{
-				_touchCoolDown = COOLDOWN_TIME;
-				if (Random.Range(0, 100) < TouchChance.Value && 
-					Traverse.Create(handCtrl).Field("selectKindTouch").GetValue<HandCtrl.AibuColliderKind>() == HandCtrl.AibuColliderKind.kokan)
-				{
-					Squirt(softSE: true, trigger: TriggerType.Touch, female: Traverse.Create(handCtrl).Field("female").GetValue<ChaControl>());		
-				}			
-			}		
+				Squirt(softSE: true, trigger: TriggerType.Touch, female: Traverse.Create(handCtrl).Field("female").GetValue<ChaControl>());		
+			}					
 		}
 
 		//Only applicable when not in VR
-		internal static void OnDragClick(int _area)
+		internal static void OnCaressClick(int _area)
 		{
-			if (_area == 2 && _touchCoolDown <= 0 && Input.GetMouseButtonDown(0))
+			//check if the vagina area was clicked and if the click happened in the current frame, to make sure this only runs once per click 
+			if (_area == (int)HandCtrl.AibuColliderKind.kokan - 2 && Input.GetMouseButtonDown(0))
 			{
-				_touchCoolDown = COOLDOWN_TIME;
-				if (Random.Range(0, 100) < TouchChance.Value)
-					Squirt(softSE: true, trigger: TriggerType.Touch);	
+				//run squirt every (number added below / TOUCH_THRESHOLD) clicks to prevent too much squirting caused by click spamming
+				_touchAmount += 1.5f;
+
+				if (_touchAmount > TOUCH_THRESHOLD)
+				{	
+					_touchAmount = 0;
+					if (Random.Range(0, 100) < TouchChance.Value)
+						Squirt(softSE: true, trigger: TriggerType.Touch);
+				}
 			}			
 		}
 
