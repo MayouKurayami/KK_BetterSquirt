@@ -131,18 +131,18 @@ namespace KK_BetterSquirt
 						main.duration = DURATION_FULL;
 				}
 
-				//Here we create two additional water streams that can be toggled on/off later on
+				//Create two additional water streams that can be toggled on/off later on
 				//One overlaps with the original stream to enhance its intensity or to split off vertically, while the other goes off at a slightly off angle to split off horizontally
 				GameObject stream = asset.FindChild("WaterStreamEffectCnstSpd5");
 				if (stream != null)
 				{
 					GameObject side = Instantiate(stream, parent: asset.transform);
 					side.name = "SideWaterStreamEffectCnstSpd5";
-					side.transform.localRotation = Quaternion.Euler(new Vector3(0f, 1, 0f));
+					side.transform.localRotation = Quaternion.Euler(new Vector3(0f, -1, 0f));
 
 					GameObject sub = Instantiate(stream, parent: asset.transform);
 					sub.name = "SubWaterStreamEffectCnstSpd5";
-					stream.transform.localRotation = sub.transform.localRotation = Quaternion.Euler(new Vector3(0f, -1, 0f));
+					stream.transform.localRotation = sub.transform.localRotation = Quaternion.Euler(new Vector3(0f, 1, 0f));
 				}
 				else
 					BetterSquirtPlugin.Logger.LogError("WaterStreamEffectCnstSpd5 not found. Check unity3d file");
@@ -313,7 +313,8 @@ namespace KK_BetterSquirt
 			{
 				new AnimationCurve(
 					new Keyframe(0.1f/DURATION_FULL, Random.Range(1f, 1.2f)),
-					new Keyframe(0.5f/DURATION_FULL, 0),
+					new Keyframe(0.25f/DURATION_FULL, Random.Range(1f, 1.2f)),
+					new Keyframe(0.6f/DURATION_FULL, 0),
 					new Keyframe(DURATION_MIN/DURATION_FULL, Random.Range(0, 0.1f))),
 
 				new AnimationCurve(
