@@ -166,7 +166,6 @@ namespace KK_BetterSquirt
 				}
 
 				_fancyParticlesLoaded = true;
-				Destroy(asset);
 			}
 
 			return true;
