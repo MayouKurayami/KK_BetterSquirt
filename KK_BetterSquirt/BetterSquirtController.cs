@@ -26,6 +26,7 @@ namespace KK_BetterSquirt
 		private static object _randSio;
 		private static HVoiceCtrl _hVoiceCtrl;
 		private static Vector2 _lastDragVector;
+
 		private static float _touchAmount = 0;
 		private static float _squirtCooldown = 0;
 
@@ -54,7 +55,7 @@ namespace KK_BetterSquirt
 
 			if (Input.GetKeyDown(SquirtKey.Value.MainKey) && SquirtKey.Value.Modifiers.All(x => Input.GetKey(x)))
 			{
-				Squirt(softSE: true);
+				Squirt(softSE: true, trigger: TriggerType.Manual);
 			}
 				
 			if (flags.drag)
@@ -91,7 +92,7 @@ namespace KK_BetterSquirt
 		{
 			if (!GameAPI.InsideHScene)
 			{
-				BetterSquirtPlugin.Logger.LogDebug("Not in H. No particles to update");
+				BetterSquirtPlugin.Logger.LogDebug("Not in H. No particles to initialize");
 				return false;
 			}
 
@@ -109,7 +110,7 @@ namespace KK_BetterSquirt
 
 			Traverse procTraverse = Traverse.Create(proc);
 
-			//Get vanilla ParticleSystems that are not null, so theoretically one ParticleSystem per female
+			//Get vanilla ParticleSystems that are not null, so theoretically there would be one ParticleSystem per female.
 			//"particle" corresponds to the first female, and "particle1" corresponds to the second female if she exists
 			string[] particleFields = { "particle", "particle1" };
 			List<ParticleSystem> vanillaParticles = particleFields
@@ -136,7 +137,7 @@ namespace KK_BetterSquirt
 			{
 				if (vanillaParticles[i] == null || handCtrls[i] == null)
 				{
-					BetterSquirtPlugin.Logger.LogError("Null referemce to vanilla ParticleSystem or HandCtrl. List index mismatch?");
+					BetterSquirtPlugin.Logger.LogError("Null reference to vanilla ParticleSystem or HandCtrl. List index mismatch?");
 					continue;
 				}				
 
@@ -158,7 +159,7 @@ namespace KK_BetterSquirt
 			{
 				BetterSquirtPlugin.Logger.LogDebug("Failed to initialize particles");
 				return false;
-			}		
+			}
 
 			return true;
 		}
@@ -216,9 +217,8 @@ namespace KK_BetterSquirt
 		}
 
 
-		/// <param name="handCtrl">If specified, only the ParticleGroup with the matching HandCtrl object will be triggered for squirting
-		/// This essentially selects which female should squirt</param>
-		internal static bool Squirt(bool sound = true, bool softSE = false, TriggerType trigger = TriggerType.Manual, MonoBehaviour handCtrl = null)
+		/// <param name="handCtrl">If specified, only the ParticleGroup with the matching HandCtrl object will be triggered for squirting. This essentially selects which female should squirt</param>
+		internal static bool Squirt(bool softSE, TriggerType trigger, bool sound = true, MonoBehaviour handCtrl = null)
 		{
 			//prevent overly frequent squirts caused by touch spamming
 			if (_squirtCooldown > 0 && trigger == TriggerType.Touch)
@@ -250,10 +250,11 @@ namespace KK_BetterSquirt
 	
 				//Default to full duration in case vanilla squirt is run
 				float duration = DURATION_FULL;
-				//Cache HVoiceCtrl.Voice to prevent race condition between the i iterator and coroutine 
+				//Cache HVoiceCtrl.Voice to prevent race condition between the for loop iterator and coroutine 
 				HVoiceCtrl.Voice voiceState = _hVoiceCtrl.nowVoices[i];
 				Transform soundReference = particle.transform.parent;
-				var hitReactionPlayDel = (Func<AibuColliderKind, bool, bool>)Delegate.CreateDelegate(typeof(Func<AibuColliderKind, bool, bool>), ParticleGroups[i].Hand, hitReactionPlayInfo);
+				var hitReactionPlayDel = (Func<AibuColliderKind, bool, bool>)Delegate.CreateDelegate(
+					typeof(Func<AibuColliderKind, bool, bool>), ParticleGroups[i].Hand, hitReactionPlayInfo);
 
 
 				if (SquirtHD.Value)
@@ -267,7 +268,7 @@ namespace KK_BetterSquirt
 					{
 						if (gameObject.name == "SubWaterStreamEffectCnstSpd5")
 						{
-							AnimationCurve subCurve = GenerateSquirtPattern(duration, out AnimationCurve subSpeed);
+							AnimationCurve subCurve = GenerateSquirtPattern(duration, out AnimationCurve subSpeed, out _);
 							ApplyCurve(gameObject, subCurve, subSpeed, 5.5f, 6.5f);
 							gameObject.SetActive(streamCount > 1);
 						}
@@ -284,7 +285,7 @@ namespace KK_BetterSquirt
 					if (sound)
 					{
 						if (softSE)
-							//If playing the soft and short soundeffect, play it once at each burst.
+							//If playing the soft and short sound effect, play it once at each burst.
 							burstActions += () => PlaySetting(setting, soundReference);		
 						else
 							//If playing the regular long sound effect, just play it once since it cannot be synchronized to the bursts
@@ -312,6 +313,7 @@ namespace KK_BetterSquirt
 				particle.Simulate(0f);
 				particle.Play();
 				anyParticlePlayed = true;
+				//In case multiple squirts are triggered simultaneously with different durations, set squirt cooldown to the one with the longest duration
 				_squirtCooldown = Mathf.Max(_squirtCooldown, duration);
 			}
 
@@ -339,11 +341,27 @@ namespace KK_BetterSquirt
 			yield return null;
 		}
 
+		private static bool PlaySetting(Utils.Sound.Setting setting, Transform referenceInfo)
+		{
+			Transform soundsource = Utils.Sound.Play(setting);
+			if (soundsource != null)
+			{
+				soundsource.transform.SetParent(referenceInfo, false);
+				return true;
+			}
+			else
+			{
+				BetterSquirtPlugin.Logger.LogError("Failed to play sound effect");
+				return false;
+			}
+		}
+
 		private static void GenerateSquirtParameters(TriggerType trigger, out float duration, out int streamCount)
 		{
 			//Default values here are for when behavior is set to random, so we don't need to check for that  
 			float min = DURATION_MIN;
 			float max = DURATION_FULL;
+			//UnityEngine.Random.Range() for int is ([inclusive], [exclusive])
 			streamCount = Random.Range(1, 4);
 			bool isAroused = flags.gaugeFemale >= 70f;
 
@@ -389,7 +407,6 @@ namespace KK_BetterSquirt
 						break;
 
 					case Behavior.Auto:
-						//UnityEngine.Random.Range() for int is ([inclusive], [exclusive])
 						streamCount = flags.gaugeFemale < 70f ? Random.Range(1, 3) : Random.Range(2, 4);
 						break;
 				}
@@ -457,11 +474,6 @@ namespace KK_BetterSquirt
 			return emissionCurve;
 		}
 
-		private static AnimationCurve GenerateSquirtPattern(float duration, out AnimationCurve initSpeed)
-		{
-			return GenerateSquirtPattern(duration, out initSpeed, out _);
-		}
-
 		/// <summary>
 		/// Apply two independent AnimationCurves to the emission and initial velocity of all ParticleSystems of a GameObject and its children, with the initial velocity's multipler picked randomly between a given range
 		/// </summary>
@@ -498,20 +510,7 @@ namespace KK_BetterSquirt
 			}
 		}
 		
-		private static bool PlaySetting(Utils.Sound.Setting setting, Transform referenceInfo)
-		{
-			Transform soundsource = Utils.Sound.Play(setting);
-			if (soundsource != null)
-			{
-				soundsource.transform.SetParent(referenceInfo, false);
-				return true;
-			}		
-			else
-			{
-				BetterSquirtPlugin.Logger.LogError("Failed to play sound effect");
-				return false;
-			}
-		}
+		
 
 		internal static bool CheckOrgasmSquirtCondition()
 		{
@@ -523,8 +522,11 @@ namespace KK_BetterSquirt
 			return shuffleRandInstance == _randSio && SquirtBehavior.Value != SquirtMode.Vanilla;
 		}
 
+
+
 		/// <summary>
-		/// Accumulate the amount the user has dragged the vagina for and check if it has exceeded the threshold for the squirting procedure to proceed
+		/// Accumulate the amount the user has dragged the vagina for and check if it has exceeded the threshold for the squirting procedure to proceed.
+		/// Not applicable in 3P
 		/// </summary>
 		private static void OnDrag()
 		{		
@@ -549,7 +551,6 @@ namespace KK_BetterSquirt
 			}
 		}
 
-
 		internal static void OnCaressStart(MonoBehaviour handCtrl)
 		{
 			if (Random.Range(0, 100) < TouchChance.Value && 
@@ -559,7 +560,6 @@ namespace KK_BetterSquirt
 			}					
 		}
 
-		//Only applicable when not in VR
 		internal static void OnCaressClick(int _area)
 		{
 			//check if the vagina area was clicked and if the click happened in the current frame, to make sure this only runs once per click 
