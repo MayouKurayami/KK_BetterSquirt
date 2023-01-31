@@ -220,8 +220,8 @@ namespace KK_BetterSquirt
 		/// This essentially selects which female should squirt</param>
 		internal static bool Squirt(bool sound = true, bool softSE = false, TriggerType trigger = TriggerType.Manual, MonoBehaviour handCtrl = null)
 		{
-			//allow squirt spamming if it's triggered manually, as such spamming would probably be intentional
-			if (_squirtCooldown > 0 && trigger != TriggerType.Manual)
+			//prevent overly frequent squirts caused by touch spamming
+			if (_squirtCooldown > 0 && trigger == TriggerType.Touch)
 				return false;
 			
 
