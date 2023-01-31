@@ -357,8 +357,8 @@ namespace KK_BetterSquirt
 			else if (trigger == TriggerType.Touch)
 			{
 				min = !isAroused ? 1 : 2f;
-				max = !isAroused ? 2 : 2.7f;
-				streamCount = 1;
+				max = !isAroused ? 1.9f : 2.69f;
+				streamCount = !isAroused ? 1 : Random.Range(1, 3);
 			}
 			else
 			{
@@ -445,7 +445,7 @@ namespace KK_BetterSquirt
 					initSpeed.AddKey(key.time + timeElapsed, Mathf.Clamp(key.value, 0.5f, 1f));
 				}
 				//Use the first Keyframe of the pattern and some more magic numbers as thresholds to determine whether the pattern is "bursty" enough
-				if ((pattern.keys.First().time < 0.3f && pattern.keys.First().value > 0.7f) || timeElapsed == 0)
+				if ((pattern.keys.First().time < 0.3f && pattern.keys.First().value > 0.9f) || timeElapsed == 0)
 					burstTimes.Add(timeElapsed * DURATION_FULL);
 
 				timeElapsed += pattern.keys.Last().time;
