@@ -518,9 +518,9 @@ namespace KK_BetterSquirt
 			return GameAPI.InsideHScene && (SquirtBehavior.Value == SquirtMode.Always || (SquirtBehavior.Value == SquirtMode.Aroused && flags.gaugeFemale > 70f));
 		}
 
-		internal static bool CheckOrgasmSquirtCondition(GlobalMethod.ShuffleRand randSio)
+		internal static bool AibuSquirtBypass(GlobalMethod.ShuffleRand shuffleRandInstance)
 		{
-			return randSio == _randSio && CheckOrgasmSquirtCondition();
+			return shuffleRandInstance == _randSio && SquirtBehavior.Value != SquirtMode.Vanilla;
 		}
 
 		/// <summary>

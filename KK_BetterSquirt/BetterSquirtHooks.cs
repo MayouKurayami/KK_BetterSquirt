@@ -61,11 +61,12 @@ namespace KK_BetterSquirt
 		[HarmonyPatch(typeof(GlobalMethod.ShuffleRand), nameof(GlobalMethod.ShuffleRand.Get))]
 		public static bool GetRandSioPre(ref int __result, GlobalMethod.ShuffleRand __instance)
 		{		
-			if (BetterSquirtController.CheckOrgasmSquirtCondition(__instance))
+			if (BetterSquirtController.AibuSquirtBypass(__instance))
 			{
-				__result = 1;
+				__result = BetterSquirtController.CheckOrgasmSquirtCondition() ? 1 : 0;
 				return false;
 			}
+			else
 			return true;
 		}
 
