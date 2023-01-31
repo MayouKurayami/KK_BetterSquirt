@@ -62,12 +62,6 @@ namespace KK_BetterSquirt
 				key: "Improved Particles",
 				defaultValue: true,
 				"Replaces vanilla squirt with a more realistic one");
-			SquirtHD.SettingChanged += (sender, args) =>
-			{
-				if (GameAPI.InsideHScene)
-					BetterSquirtController.InitParticles(		
-						FindObjectOfType(Type.GetType("VRHScene, Assembly-CSharp") ?? Type.GetType("HSceneProc, Assembly-CSharp")));
-			};
 
 			SquirtDuration = Config.Bind(
 				section: "Better Squirt",

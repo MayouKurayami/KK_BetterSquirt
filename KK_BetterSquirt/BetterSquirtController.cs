@@ -1,25 +1,30 @@
 ﻿using HarmonyLib;
 using KKAPI.MainGame;
 using KKAPI.Utilities;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System;
 using UnityEngine;
+using Random = UnityEngine.Random;
 using static UnityEngine.ParticleSystem;
 using StrayTech;
 using Unity.Linq;
 using Illusion.Game;
 using static HParticleCtrl;
+using static HandCtrl;
 using static KK_BetterSquirt.BetterSquirtPlugin;
-
+using System.Reflection;
 
 namespace KK_BetterSquirt
 {
 	public class BetterSquirtController : GameCustomFunctionController
 	{
-		public static List<ParticleSystem> SquirtParticles { get; private set; }
+		public static List<ParticleGroup> ParticleGroups { get; private set; }
+		public static BetterSquirtController Instance { get; private set; }
 		private static HFlag flags { get; set; }
 		private static object _randSio;
-		private static bool _fancyParticlesLoaded = false;
+		private static HVoiceCtrl _hVoiceCtrl;
 		private static Vector2 _lastDragVector;
 		private static float _touchAmount = 0;
 		private static float _squirtCooldown = 0;
@@ -30,6 +35,17 @@ namespace KK_BetterSquirt
 		private const string ASSETBUNDLE = "addcustomeffect.unity3d";
 		private const string ASSETNAME = "SprayRefractive";
 
+		public struct ParticleGroup
+		{		
+			public ParticleSystem VanillaParticle { get; set; }
+			public ParticleSystem NewParticle { get; set; }
+			public MonoBehaviour Hand { get; set; }
+		}
+
+		private void Awake()
+		{
+			Instance = this;
+		}
 
 		private void Update()
 		{
@@ -37,8 +53,10 @@ namespace KK_BetterSquirt
 				return;
 
 			if (Input.GetKeyDown(SquirtKey.Value.MainKey) && SquirtKey.Value.Modifiers.All(x => Input.GetKey(x)))
+			{
 				Squirt(softSE: true);
-
+			}
+				
 			if (flags.drag)
 				OnDrag();
 
@@ -53,21 +71,19 @@ namespace KK_BetterSquirt
 		protected override void OnStartH(BaseLoader proc, HFlag hFlag, bool vr)
 		{
 			flags = hFlag;
-			Traverse
-				.Create(proc)
+			var procTraverse = Traverse.Create(proc);
+
+			procTraverse
 				.Field("lstProc")
 				.GetValue<List<HActionBase>>()
 				.OfType<HAibu>()
 				.FirstOrDefault()
 				.GetFieldValue("randSio", out _randSio);
 
-			InitParticles(proc);
+			_hVoiceCtrl = procTraverse.Field("voice").GetValue<HVoiceCtrl>();
 			_lastDragVector = new Vector2(0.5f, 0.5f);
-		}
 
-		protected override void OnEndH(BaseLoader proc, HFlag hFlag, bool vr)
-		{
-			_fancyParticlesLoaded = false;
+			InitParticles(proc);		
 		}
 
 
@@ -79,178 +95,174 @@ namespace KK_BetterSquirt
 				return false;
 			}
 
-			string[] fields = { "particle", "particle1" };
-			List<ParticleSystem> vanillaParticles = fields
-				.Select(field => Traverse.Create(proc).Field(field).GetValue<HParticleCtrl>())
-				.Where(partCtrl => partCtrl != null)
+			//Before adding particles, destroy existing particles created by this plugin to prevent duplicates
+			if (ParticleGroups != null)
+			{
+				foreach (ParticleGroup particleGroup in ParticleGroups)
+				{
+					if (particleGroup.NewParticle != null)
+						Destroy(particleGroup.NewParticle.gameObject);
+				}
+			}		
+
+			ParticleGroups = new List<ParticleGroup>();
+
+			Traverse procTraverse = Traverse.Create(proc);
+
+			//Get vanilla ParticleSystems that are not null, so theoretically one ParticleSystem per female
+			//"particle" corresponds to the first female, and "particle1" corresponds to the second female if she exists
+			string[] particleFields = { "particle", "particle1" };
+			List<ParticleSystem> vanillaParticles = particleFields
+				.Select(field => procTraverse.Field(field).GetValue<HParticleCtrl>())
 				.Select(partCtrl => Traverse.Create(partCtrl).Field("dicParticle").GetValue<Dictionary<int, ParticleInfo>>())
 				.Where(dic => dic != null && dic.TryGetValue(2, out ParticleInfo pInfo) && pInfo?.particle != null)
 				.Select(dic => dic[2].particle)
 				.ToList();
 
-			if (vanillaParticles.Count() == 0)
+			//Get HandCtrl objects. Each one corresponds to each female
+			List<MonoBehaviour> handCtrls = new List<MonoBehaviour>();
+			if (Type.GetType("VRHScene, Assembly-CSharp") == null)
 			{
-				BetterSquirtPlugin.Logger.LogDebug("Failed to access vanilla squirt particles");
-				return false;
-			}		
-			
-			if (!SquirtHD.Value)
-			{
-				foreach (ParticleSystem particle in SquirtParticles)
-				{
-					//var fancyParticle = particle.transform.parent.Cast<Transform>().FirstOrDefault(t => t.name == ASSETNAME);
-					if (particle != null && particle.name == ASSETNAME)
-						Destroy(particle.gameObject);
-				}
-				SquirtParticles = vanillaParticles;		
-				_fancyParticlesLoaded = false;
+				string[] handCtrlFields = { "hand", "hand1" };
+				handCtrls = handCtrlFields.Select(field => procTraverse.Field(field).GetValue<MonoBehaviour>()).ToList();
 			}
 			else
+				handCtrls = procTraverse.Field("vrHands").GetValue<MonoBehaviour[]>().ToList();
+
+
+			GameObject asset = GetParticleAsset();			
+
+			for (int i = 0; i < vanillaParticles.Count; i++)
 			{
-				//Attempt to load from zipmod first
-				GameObject asset = CommonLib.LoadAsset<GameObject>($"studio/{ASSETBUNDLE}", ASSETNAME);
-				//If failed to load from zipmod, load from embedded resource
-				if (asset == null)
+				if (vanillaParticles[i] == null || handCtrls[i] == null)
 				{
-					AssetBundle bundle = AssetBundle.LoadFromMemory(ResourceUtils.GetEmbeddedResource(ASSETBUNDLE));
-					asset = bundle.LoadAsset<GameObject>(ASSETNAME);
-					bundle.Unload(false);
-				}
-				if (asset == null || asset.GetComponent<ParticleSystem>() == null)
-				{
-					BetterSquirtPlugin.Logger.LogError("Particles resource was not found. Fancy squirt not loaded");
-					return false;
-				}
+					BetterSquirtPlugin.Logger.LogError("Null referemce to vanilla ParticleSystem or HandCtrl. List index mismatch?");
+					continue;
+				}				
 
-				foreach (var particle in asset.GetComponentsInChildren<ParticleSystem>())
-				{
-					var main = particle.main;
-					main.loop = false;
-					main.playOnAwake = false;
-					if (main.duration < DURATION_FULL)
-						main.duration = DURATION_FULL;
-				}
+				GameObject newGameObject = Instantiate(asset);
+				newGameObject.name = asset.name;
+				newGameObject.transform.SetParent(vanillaParticles[i].transform.parent);
+				//Adjust the position and rotation of the new Particle System to make sure the stream comes out of the manko at the right place and the right angle
+				newGameObject.transform.localPosition = new Vector3(-0.01f, 0f, 0f);
+				newGameObject.transform.localRotation = Quaternion.Euler(new Vector3(60f, 0, 0f));
+				newGameObject.transform.localScale = Vector3.one;
 
-				//Create two additional water streams that can be toggled on/off later on
-				//One overlaps with the original stream to enhance its intensity or to split off vertically, while the other goes off at a slightly off angle to split off horizontally
-				GameObject stream = asset.FindChild("WaterStreamEffectCnstSpd5");
-				if (stream != null)
-				{
-					GameObject side = Instantiate(stream, parent: asset.transform);
-					side.name = "SideWaterStreamEffectCnstSpd5";
-					side.transform.localRotation = Quaternion.Euler(new Vector3(0f, -1, 0f));
-
-					GameObject sub = Instantiate(stream, parent: asset.transform);
-					sub.name = "SubWaterStreamEffectCnstSpd5";
-					stream.transform.localRotation = sub.transform.localRotation = Quaternion.Euler(new Vector3(0f, 1, 0f));
-				}
-				else
-					BetterSquirtPlugin.Logger.LogError("WaterStreamEffectCnstSpd5 not found. Check unity3d file");
-				
-				//fix obfuscation by pantyhose
-				foreach (var renderer in asset.GetComponentsInChildren<ParticleSystemRenderer>())
-					renderer.material.renderQueue = 3080;
-
-
-				SquirtParticles = new List<ParticleSystem>();
-				foreach (var particle in vanillaParticles)
-				{
-					GameObject newGameObject = Instantiate(asset);
-					newGameObject.name = asset.name;
-					newGameObject.transform.SetParent(particle.transform.parent);
-					//Adjust the position and rotation of the new Particle System to make sure the stream comes out of the manko at the right place and the right angle
-					newGameObject.transform.localPosition = new Vector3(-0.01f, 0f, 0f);
-					newGameObject.transform.localRotation = Quaternion.Euler(new Vector3(60f, 0, 0f));
-					newGameObject.transform.localScale = Vector3.one;
-					SquirtParticles.Add(newGameObject.GetComponent<ParticleSystem>());
-				}
-
-				_fancyParticlesLoaded = true;
+				ParticleGroups.Add(new ParticleGroup() { 
+					VanillaParticle = vanillaParticles[i], 
+					Hand = handCtrls[i], 
+					NewParticle = newGameObject.GetComponent<ParticleSystem>() });
 			}
+
+			if (ParticleGroups.Count() == 0)
+			{
+				BetterSquirtPlugin.Logger.LogDebug("Failed to initialize particles");
+				return false;
+			}		
 
 			return true;
 		}
 
-
-		internal static bool Squirt(bool sound = true, bool softSE = false, TriggerType trigger = TriggerType.Manual, ChaControl female = null)
+		/// <summary>
+		/// Load particles resources into a GameObject and modify it to prepare for squirting
+		/// </summary>
+		private static GameObject GetParticleAsset()
 		{
+			//Attempt to load particle asset from zipmod first
+			GameObject asset = CommonLib.LoadAsset<GameObject>($"studio/{ASSETBUNDLE}", ASSETNAME);
+			//If failed to load from zipmod, load from embedded resource
+			if (asset == null)
+			{
+				AssetBundle bundle = AssetBundle.LoadFromMemory(ResourceUtils.GetEmbeddedResource(ASSETBUNDLE));
+				asset = bundle.LoadAsset<GameObject>(ASSETNAME);
+				bundle.Unload(false);
+			}
+			if (asset == null || asset.GetComponent<ParticleSystem>() == null)
+			{
+				BetterSquirtPlugin.Logger.LogError("Particles resources not found");
+				return null;
+			}
+
+			foreach (var particle in asset.GetComponentsInChildren<ParticleSystem>())
+			{
+				var main = particle.main;
+				main.loop = false;
+				main.playOnAwake = false;
+				if (main.duration < DURATION_FULL)
+					main.duration = DURATION_FULL;
+			}
+
+			//Create two additional water streams that can be toggled on/off later on
+			//One overlaps with the original stream to enhance its intensity or to split off vertically, while the other goes off at a slightly off angle to split off horizontally
+			GameObject stream = asset.FindChild("WaterStreamEffectCnstSpd5");
+			if (stream != null)
+			{
+				GameObject side = Instantiate(stream, parent: asset.transform);
+				side.name = "SideWaterStreamEffectCnstSpd5";
+				side.transform.localRotation = Quaternion.Euler(new Vector3(0f, -1, 0f));
+
+				GameObject sub = Instantiate(stream, parent: asset.transform);
+				sub.name = "SubWaterStreamEffectCnstSpd5";
+				stream.transform.localRotation = sub.transform.localRotation = Quaternion.Euler(new Vector3(0f, 1, 0f));
+			}
+			else
+				BetterSquirtPlugin.Logger.LogError("WaterStreamEffectCnstSpd5 not found. Check unity3d file");
+
+			//fix obfuscation by pantyhose
+			foreach (var renderer in asset.GetComponentsInChildren<ParticleSystemRenderer>())
+				renderer.material.renderQueue = 3080;
+
+			return asset;
+		}
+
+
+		/// <param name="handCtrl">If specified, only the ParticleGroup with the matching HandCtrl object will be triggered for squirting
+		/// This essentially selects which female should squirt</param>
+		internal static bool Squirt(bool sound = true, bool softSE = false, TriggerType trigger = TriggerType.Manual, MonoBehaviour handCtrl = null)
+		{
+			//allow squirt spamming if it's triggered manually, as such spamming would probably be intentional
 			if (_squirtCooldown > 0 && trigger != TriggerType.Manual)
 				return false;
 			
-			bool anyParticlePlayed = false;
-			//Default values here are for when behavior is set to random, so we don't need to check for that  
-			float min = DURATION_MIN;
-			float max = DURATION_FULL;
-			int streamCount = Random.Range(1, 4);
-			bool isAroused = flags.gaugeFemale >= 70f;
-			
 
-			//int femaleIndex = (flags.mode == HFlag.EMode.houshi3P || flags.mode == HFlag.EMode.sonyu3P) ? flags.nowAnimationInfo.id % 2 : 0;
-			foreach (ParticleSystem particle in SquirtParticles)
+			bool anyParticlePlayed = false;
+			Type handType = Type.GetType("VRHandCtrl, Assembly-CSharp") ?? Type.GetType("HandCtrl, Assembly-CSharp");
+			MethodInfo hitReactionPlayInfo = AccessTools.Method(handType, "HitReactionPlay", new Type[] { typeof(AibuColliderKind), typeof(bool) });
+			Utils.Sound.Setting setting = new Utils.Sound.Setting
 			{
+				type = Manager.Sound.Type.GameSE3D,
+				assetBundleName = softSE ? @"sound/data/se/h/00/00_00.unity3d" : @"sound/data/se/h/12/12_00.unity3d",
+				assetName = softSE ? "khse_10" : "hse_siofuki",
+			};
+
+
+			for (int i = 0; i < ParticleGroups.Count; i++)
+			{
+				ParticleSystem particle = SquirtHD.Value ? ParticleGroups[i].NewParticle : ParticleGroups[i].VanillaParticle;
+
 				if (particle == null)
 				{
-					BetterSquirtPlugin.Logger.LogError("Null reference in SquirtParticleInfos list");
+					BetterSquirtPlugin.Logger.LogError("Null ParticleSystem in ParticleGroups list");
 					continue;
 				}
-				if (female != null && !particle.transform.IsChildOf(female.transform))
+				if (handCtrl != null && ParticleGroups[i].Hand != handCtrl)
 					continue;
+	
+				//Default to full duration in case vanilla squirt is run
+				float duration = DURATION_FULL;
+				//Cache HVoiceCtrl.Voice to prevent race condition between the i iterator and coroutine 
+				HVoiceCtrl.Voice voiceState = _hVoiceCtrl.nowVoices[i];
+				Transform soundReference = particle.transform.parent;
+				var hitReactionPlayDel = (Func<AibuColliderKind, bool, bool>)Delegate.CreateDelegate(typeof(Func<AibuColliderKind, bool, bool>), ParticleGroups[i].Hand, hitReactionPlayInfo);
 
-				//Magic numbers below can be adjusted to taste
-				if (trigger == TriggerType.Orgasm)
+
+				if (SquirtHD.Value)
 				{
-					min = !isAroused ? 3.5f : DURATION_FULL;
-					max = DURATION_FULL;	
-					streamCount = !isAroused ? Random.Range(1, 3) : 3;
-				}
-				else if (trigger == TriggerType.Touch)
-				{
-					min = !isAroused ? 1 : 2f;
-					max = !isAroused ? 2 : 2.7f;
-					streamCount = 1;
-				}
-				else
-				{
-					switch (SquirtDuration.Value)
-					{
-						case Behavior.Maximum:
-							min = max = DURATION_FULL;
-							break;
+					GenerateSquirtParameters(trigger, out duration, out int streamCount);
+					AnimationCurve emissionCurve = GenerateSquirtPattern(duration, out AnimationCurve speedCurve, out List<float> burstTimes);
 
-						case Behavior.Minimum:
-							min = max = DURATION_MIN;
-							break;
-
-						case Behavior.Auto:
-							min = !isAroused ? DURATION_MIN : 2.7f;
-							max = !isAroused ? 2.5f : DURATION_FULL;
-							break;
-					}
-
-					switch (SquirtAmount.Value)
-					{
-						case Behavior.Maximum:
-							streamCount = 3;
-							break;
-
-						case Behavior.Minimum:
-							streamCount = 1;
-							break;
-
-						case Behavior.Auto:
-							//UnityEngine.Random.Range() for int is ([inclusive], [exclusive])
-							streamCount = flags.gaugeFemale < 70f ? Random.Range(1, 3) : Random.Range(2, 4);
-							break;
-					}
-				}
-				float duration = Random.Range(min, max);
-				AnimationCurve emissionCurve = GenerateSquirtPattern(duration, out AnimationCurve speedCurve, out List<float> burstTimes);
-
-				if (SquirtHD.Value && _fancyParticlesLoaded)
-				{
 					//Magic numbers for the minimum and maximum initial velocity are purely based on taste
 					ApplyCurve(particle.gameObject, emissionCurve, speedCurve, 5.5f, 6.5f);
-
 					foreach (GameObject gameObject in particle.gameObject.Children())
 					{
 						if (gameObject.name == "SubWaterStreamEffectCnstSpd5")
@@ -265,43 +277,125 @@ namespace KK_BetterSquirt
 							gameObject.SetActive(streamCount > 2);
 						}
 					}
+
+					//Things to do at each burst
+					Action burstActions = null;
+
+					if (sound)
+					{
+						if (softSE)
+							//If playing the soft and short soundeffect, play it once at each burst.
+							burstActions += () => PlaySetting(setting, soundReference);		
+						else
+							//If playing the regular long sound effect, just play it once since it cannot be synchronized to the bursts
+							PlaySetting(setting, soundReference);
+					}
+
+					//Do not play twitch animation during orgasm, since orgasm already has its own animation
+					if (trigger != TriggerType.Orgasm)
+						burstActions += () => hitReactionPlayDel(AibuColliderKind.reac_bodydown, voiceState.state != HVoiceCtrl.VoiceKind.voice);
+
+					if (burstActions != null)
+						Instance.StartCoroutine(OnEachBurst(burstActions, burstTimes));
+				}
+				else
+				//If improved squirt is not enabled, play the sound effect and twitch animation once since there are no bursts to synchronize to
+				{
+					if (sound)
+						PlaySetting(setting, soundReference);
+
+					//Do not play twitch animation during orgasm, since orgasm already has its own animation
+					if (trigger != TriggerType.Orgasm)
+						hitReactionPlayDel(AibuColliderKind.reac_bodydown, voiceState.state != HVoiceCtrl.VoiceKind.voice);
 				}
 
 				particle.Simulate(0f);
 				particle.Play();
 				anyParticlePlayed = true;
-				_squirtCooldown = Mathf.Max(_squirtCooldown, duration);		
-
-				if (sound)
-				{
-					Utils.Sound.Setting setting = new Utils.Sound.Setting
-					{
-						type = Manager.Sound.Type.GameSE3D,
-						assetBundleName = softSE ? @"sound/data/se/h/00/00_00.unity3d" : @"sound/data/se/h/12/12_00.unity3d",
-						assetName = softSE ? "khse_10" : "hse_siofuki",
-					};
-					Transform referenceInfo = particle.transform.parent;
-
-					if (softSE && SquirtHD.Value)
-					{
-						foreach (float time in burstTimes)
-						{
-							setting.delayTime = time;
-							if (!PlaySetting(setting, referenceInfo))
-								break;
-						}
-					}
-					else
-						PlaySetting(setting, referenceInfo);
-				}
+				_squirtCooldown = Mathf.Max(_squirtCooldown, duration);
 			}
+
 			if (!anyParticlePlayed)
 			{
-				BetterSquirtPlugin.Logger.LogError("Null references in SquirtParticleInfos list. Could not initialize squirting");
+				BetterSquirtPlugin.Logger.LogDebug("Could not initialize squirting");
 				return false;
 			}
 			
 			return true;
+		}
+
+		private static IEnumerator OnEachBurst(Action action, List<float> burstTimes)
+		{
+			float lastTime = 0;
+	
+			foreach (float burstTime in burstTimes)
+			{
+				//Delay each delegate invocation by the difference in time between the timestamps of each burst
+				yield return new WaitForSeconds(burstTime - lastTime);
+				action.Invoke();
+				lastTime = burstTime;
+			}
+
+			yield return null;
+		}
+
+		private static void GenerateSquirtParameters(TriggerType trigger, out float duration, out int streamCount)
+		{
+			//Default values here are for when behavior is set to random, so we don't need to check for that  
+			float min = DURATION_MIN;
+			float max = DURATION_FULL;
+			streamCount = Random.Range(1, 4);
+			bool isAroused = flags.gaugeFemale >= 70f;
+
+			//Magic numbers below can be adjusted to taste
+			if (trigger == TriggerType.Orgasm)
+			{
+				min = !isAroused ? 3.5f : DURATION_FULL;
+				max = DURATION_FULL;
+				streamCount = !isAroused ? Random.Range(1, 3) : 3;
+			}
+			else if (trigger == TriggerType.Touch)
+			{
+				min = !isAroused ? 1 : 2f;
+				max = !isAroused ? 2 : 2.7f;
+				streamCount = 1;
+			}
+			else
+			{
+				switch (SquirtDuration.Value)
+				{
+					case Behavior.Maximum:
+						min = max = DURATION_FULL;
+						break;
+
+					case Behavior.Minimum:
+						min = max = DURATION_MIN;
+						break;
+
+					case Behavior.Auto:
+						min = !isAroused ? DURATION_MIN : 2.7f;
+						max = !isAroused ? 2.5f : DURATION_FULL;
+						break;
+				}
+
+				switch (SquirtAmount.Value)
+				{
+					case Behavior.Maximum:
+						streamCount = 3;
+						break;
+
+					case Behavior.Minimum:
+						streamCount = 1;
+						break;
+
+					case Behavior.Auto:
+						//UnityEngine.Random.Range() for int is ([inclusive], [exclusive])
+						streamCount = flags.gaugeFemale < 70f ? Random.Range(1, 3) : Random.Range(2, 4);
+						break;
+				}
+			}
+
+			duration = Random.Range(min, max);
 		}
 
 
@@ -434,7 +528,7 @@ namespace KK_BetterSquirt
 		/// </summary>
 		private static void OnDrag()
 		{		
-			Vector2 currentDrag = flags.xy[(int)HandCtrl.AibuColliderKind.kokan - 2];
+			Vector2 currentDrag = flags.xy[(int)AibuColliderKind.kokan - 2];
 			//truncate the x and y values to two decimal places to prevent superfluous values being added to _touchAmount caused by the imprecise nature of floats
 			_touchAmount += ((int)(Mathf.Abs(currentDrag.y - _lastDragVector.y) * 100) + (int)(Mathf.Abs(currentDrag.x - _lastDragVector.x) * 100)) / 100f;
 			_lastDragVector = currentDrag;
@@ -447,11 +541,11 @@ namespace KK_BetterSquirt
 			}	
 		}
 
-		internal static void OnBoop(MonoBehaviour handCtrl, HandCtrl.AibuColliderKind touchArea)
+		internal static void OnBoop(MonoBehaviour handCtrl, AibuColliderKind touchArea)
 		{
-			if (touchArea == HandCtrl.AibuColliderKind.reac_bodydown && Random.Range(0, 100) < TouchChance.Value)
+			if (touchArea == AibuColliderKind.reac_bodydown && Random.Range(0, 100) < TouchChance.Value)
 			{
-				Squirt(softSE: true, trigger: TriggerType.Touch, female: Traverse.Create(handCtrl).Field("female").GetValue<ChaControl>());			
+				Squirt(softSE: true, trigger: TriggerType.Touch, handCtrl: handCtrl);			
 			}
 		}
 
@@ -459,9 +553,9 @@ namespace KK_BetterSquirt
 		internal static void OnCaressStart(MonoBehaviour handCtrl)
 		{
 			if (Random.Range(0, 100) < TouchChance.Value && 
-				Traverse.Create(handCtrl).Field("selectKindTouch").GetValue<HandCtrl.AibuColliderKind>() == HandCtrl.AibuColliderKind.kokan)
+				Traverse.Create(handCtrl).Field("selectKindTouch").GetValue<AibuColliderKind>() == AibuColliderKind.kokan)
 			{
-				Squirt(softSE: true, trigger: TriggerType.Touch, female: Traverse.Create(handCtrl).Field("female").GetValue<ChaControl>());		
+				Squirt(softSE: true, trigger: TriggerType.Touch, handCtrl: handCtrl);		
 			}					
 		}
 
@@ -469,7 +563,7 @@ namespace KK_BetterSquirt
 		internal static void OnCaressClick(int _area)
 		{
 			//check if the vagina area was clicked and if the click happened in the current frame, to make sure this only runs once per click 
-			if (_area == (int)HandCtrl.AibuColliderKind.kokan - 2 && Input.GetMouseButtonDown(0))
+			if (_area == (int)AibuColliderKind.kokan - 2 && Input.GetMouseButtonDown(0))
 			{
 				//run squirt every (number added below / TOUCH_THRESHOLD) clicks to prevent too much squirting caused by click spamming
 				_touchAmount += 1.5f;
