@@ -543,14 +543,14 @@ namespace KK_BetterSquirt
 			if (_touchAmount > TOUCH_THRESHOLD)
 			{
 				_touchAmount = 0;
-				if (Random.Range(0, 100) < TouchChance.Value)
+				if (TouchChanceCalc())
 					Squirt(softSE: true, trigger: TriggerType.Touch);		
 			}	
 		}
 
 		internal static void OnBoop(MonoBehaviour handCtrl, AibuColliderKind touchArea)
 		{
-			if (touchArea == AibuColliderKind.reac_bodydown && Random.Range(0, 100) < TouchChance.Value)
+			if (touchArea == AibuColliderKind.reac_bodydown && TouchChanceCalc())
 			{
 				Squirt(softSE: true, trigger: TriggerType.Touch, handCtrl: handCtrl);			
 			}
@@ -558,7 +558,7 @@ namespace KK_BetterSquirt
 
 		internal static void OnCaressStart(MonoBehaviour handCtrl)
 		{
-			if (Random.Range(0, 100) < TouchChance.Value &&
+			if (TouchChanceCalc() &&
 				Traverse.Create(handCtrl).Field("selectKindTouch").GetValue<AibuColliderKind>() == AibuColliderKind.kokan)
 			{
 				Squirt(softSE: true, trigger: TriggerType.Touch, handCtrl: handCtrl);		
@@ -576,9 +576,35 @@ namespace KK_BetterSquirt
 				if (_touchAmount > TOUCH_THRESHOLD)
 				{	
 					_touchAmount = 0;
-					if (Random.Range(0, 100) < TouchChance.Value)
+					if (TouchChanceCalc())
 						Squirt(softSE: true, trigger: TriggerType.Touch);
 				}
+			}
+		}
+
+		/// <summary>
+		/// If the girl is not aroused, scale the user configued probability of touch triggered squirts to a curve with concavity determined by the excitement gauge value.
+		/// This prevents excessive squirting when the girl is barely aroused.
+		/// </summary>
+		private static bool TouchChanceCalc()
+		{
+			int random = Random.Range(0, 100);
+
+			if (flags.gaugeFemale > 70f)
+				return random < TouchChance.Value;
+			else
+			{
+				//Modify TouchChance.Value by (-a^5x)/(x-a^5-1), with "a" being the excitement gauge value converted between 0.55 to 1.4
+				float multiplier = (flags.gaugeFemale / 70f) * (1.4f - 0.55f) + 0.55f;
+
+				//Alledgely faster than Math.Pow(). Not actually tested. In StackOverflow we trust.
+				for (int i = 0; i < 5; i++)
+					multiplier *= multiplier;
+
+				float chanceNormal = TouchChance.Value / 100f;
+				float chanceMod = (0 - multiplier) * chanceNormal / (chanceNormal - multiplier - 1);
+
+				return random < chanceMod * 100;
 			}
 		}
 

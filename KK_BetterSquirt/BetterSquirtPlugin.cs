@@ -52,8 +52,8 @@ namespace KK_BetterSquirt
 			TouchChance = Config.Bind(
 				section: "",
 				key: "Touch Sensitivity",
-				defaultValue: 30,
-				new ConfigDescription("How frequently squirts are triggered when touching the girl's vagina/crotch" +
+				defaultValue: 25,
+				new ConfigDescription("How frequently squirts are triggered when touching the girl's vagina/crotch. Affected by the girl's excitement gauge." +
 				"\nSet to 0 to disable this feature",
 					new AcceptableValueRange<int>(0, 100)));
 
