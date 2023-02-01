@@ -28,7 +28,6 @@ namespace KK_BetterSquirt
 		private static Vector2 _lastDragVector;
 
 		private static float _touchAmount = 0;
-		private static float _squirtCooldown = 0;
 
 		private const float DURATION_FULL = 4.8f;
 		private const float DURATION_MIN = 1f;
@@ -36,11 +35,12 @@ namespace KK_BetterSquirt
 		private const string ASSETBUNDLE = "addcustomeffect.unity3d";
 		private const string ASSETNAME = "SprayRefractive";
 
-		public struct ParticleGroup
+		public class ParticleGroup
 		{		
 			public ParticleSystem VanillaParticle { get; set; }
 			public ParticleSystem NewParticle { get; set; }
 			public MonoBehaviour Hand { get; set; }
+			public float Cooldown { get; set; }
 		}
 
 		private void Awake()
@@ -61,8 +61,11 @@ namespace KK_BetterSquirt
 			if (flags.drag)
 				OnDrag();
 
-			if (_squirtCooldown > 0)
-				_squirtCooldown -= Time.deltaTime;
+			foreach (var particle in ParticleGroups)
+			{
+				if (particle.Cooldown > 0)
+					particle.Cooldown -= Time.deltaTime;
+			}		
 
 			if (_touchAmount > 0)
 				_touchAmount -= Time.deltaTime;
@@ -220,11 +223,6 @@ namespace KK_BetterSquirt
 		/// <param name="handCtrl">If specified, only the ParticleGroup with the matching HandCtrl object will be triggered for squirting. This essentially selects which female should squirt</param>
 		internal static bool Squirt(bool softSE, TriggerType trigger, bool sound = true, MonoBehaviour handCtrl = null)
 		{
-			//prevent overly frequent squirts caused by touch spamming
-			if (_squirtCooldown > 0 && trigger == TriggerType.Touch)
-				return false;
-			
-
 			bool anyParticlePlayed = false;
 			Type handType = Type.GetType("VRHandCtrl, Assembly-CSharp") ?? Type.GetType("HandCtrl, Assembly-CSharp");
 			MethodInfo hitReactionPlayInfo = AccessTools.Method(handType, "HitReactionPlay", new Type[] { typeof(AibuColliderKind), typeof(bool) });
@@ -238,15 +236,19 @@ namespace KK_BetterSquirt
 
 			for (int i = 0; i < ParticleGroups.Count; i++)
 			{
-				ParticleSystem particle = SquirtHD.Value ? ParticleGroups[i].NewParticle : ParticleGroups[i].VanillaParticle;
+				//prevent overly frequent squirts caused by touch spamming
+				if (ParticleGroups[i].Cooldown > 0 && trigger == TriggerType.Touch)
+					continue;
 
+				if (handCtrl != null && ParticleGroups[i].Hand != handCtrl)
+					continue;
+
+				ParticleSystem particle = SquirtHD.Value ? ParticleGroups[i].NewParticle : ParticleGroups[i].VanillaParticle;
 				if (particle == null)
 				{
 					BetterSquirtPlugin.Logger.LogError("Null ParticleSystem in ParticleGroups list");
 					continue;
-				}
-				if (handCtrl != null && ParticleGroups[i].Hand != handCtrl)
-					continue;
+				}				
 	
 				//Default to full duration in case vanilla squirt is run
 				float duration = DURATION_FULL;
@@ -313,8 +315,7 @@ namespace KK_BetterSquirt
 				particle.Simulate(0f);
 				particle.Play();
 				anyParticlePlayed = true;
-				//In case multiple squirts are triggered simultaneously with different durations, set squirt cooldown to the one with the longest duration
-				_squirtCooldown = Mathf.Max(_squirtCooldown, duration);
+				ParticleGroups[i].Cooldown = duration;
 			}
 
 			if (!anyParticlePlayed)
@@ -538,7 +539,7 @@ namespace KK_BetterSquirt
 			if (_touchAmount > TOUCH_THRESHOLD)
 			{
 				_touchAmount = 0;
-				if (Random.Range(0, 100) < TouchChance.Value && _squirtCooldown <= 0)
+				if (Random.Range(0, 100) < TouchChance.Value)
 					Squirt(softSE: true, trigger: TriggerType.Touch);		
 			}	
 		}
@@ -553,7 +554,7 @@ namespace KK_BetterSquirt
 
 		internal static void OnCaressStart(MonoBehaviour handCtrl)
 		{
-			if (Random.Range(0, 100) < TouchChance.Value && 
+			if (Random.Range(0, 100) < TouchChance.Value &&
 				Traverse.Create(handCtrl).Field("selectKindTouch").GetValue<AibuColliderKind>() == AibuColliderKind.kokan)
 			{
 				Squirt(softSE: true, trigger: TriggerType.Touch, handCtrl: handCtrl);		
@@ -574,7 +575,7 @@ namespace KK_BetterSquirt
 					if (Random.Range(0, 100) < TouchChance.Value)
 						Squirt(softSE: true, trigger: TriggerType.Touch);
 				}
-			}			
+			}
 		}
 
 
