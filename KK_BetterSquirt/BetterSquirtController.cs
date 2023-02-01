@@ -164,6 +164,9 @@ namespace KK_BetterSquirt
 				return false;
 			}
 
+			//If loaded asset is not destroyed, the game would crash upon leaving H scene due to memory spike
+			Destroy(asset);
+
 			return true;
 		}
 
@@ -172,8 +175,9 @@ namespace KK_BetterSquirt
 		/// </summary>
 		private static GameObject GetParticleAsset()
 		{
-			//Attempt to load particle asset from zipmod first
-			GameObject asset = CommonLib.LoadAsset<GameObject>($"studio/{ASSETBUNDLE}", ASSETNAME);
+			//Attempt to load particle asset from zipmod first before loading the embedded resource
+			//"clone" is set to true to allow the loaded asset to be destroyed after being loaded (to prevent crash) without causing cab-string conflict the next time the asset is loaded
+			GameObject asset = CommonLib.LoadAsset<GameObject>($"studio/{ASSETBUNDLE}", ASSETNAME, clone: true);
 			//If failed to load from zipmod, load from embedded resource
 			if (asset == null)
 			{
