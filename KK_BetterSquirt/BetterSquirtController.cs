@@ -244,7 +244,10 @@ namespace KK_BetterSquirt
 				if (ParticleGroups[i].Cooldown > 0 && trigger == TriggerType.Touch)
 					continue;
 
-				if (handCtrl != null && ParticleGroups[i].Hand != handCtrl)
+				//This makes sure that squirt only runs on the specific HandCtrl (female) that's associated with the ParticleSystem.
+				//Skip if there is only one ParticleGroup loaded, meaning that there is only one female.
+				//In VR the different hand objects are associated with each controller instead of each female, so running this check when there is only one female breaks touch triggered squirts. When there are more than one female in VR, touch and caress are completely broken anyway so running this check doesn't matter.
+				if (ParticleGroups.Count > 1 && handCtrl != null && ParticleGroups[i].Hand != handCtrl)
 					continue;
 
 				ParticleSystem particle = SquirtHD.Value ? ParticleGroups[i].NewParticle : ParticleGroups[i].VanillaParticle;
