@@ -228,8 +228,8 @@ namespace KK_BetterSquirt
 		internal static bool Squirt(bool softSE, TriggerType trigger, bool sound = true, MonoBehaviour handCtrl = null)
 		{
 			bool anyParticlePlayed = false;
-			Type handType = Type.GetType("VRHandCtrl, Assembly-CSharp") ?? Type.GetType("HandCtrl, Assembly-CSharp");
-			MethodInfo hitReactionPlayInfo = AccessTools.Method(handType, "HitReactionPlay", new Type[] { typeof(AibuColliderKind), typeof(bool) });
+			Type handType = Type.GetType("VRHandCtrl, Assembly-CSharp") ?? typeof(HandCtrl);
+			MethodInfo hitReactionPlayInfo = AccessTools.Method(handType, "HitReactionPlay", new Type[] { typeof(int), typeof(bool) });
 			Utils.Sound.Setting setting = new Utils.Sound.Setting
 			{
 				type = Manager.Sound.Type.GameSE3D,
@@ -258,9 +258,8 @@ namespace KK_BetterSquirt
 				float duration = DURATION_FULL;
 				//Cache HVoiceCtrl.Voice to prevent race condition between the for loop iterator and coroutine 
 				HVoiceCtrl.Voice voiceState = _hVoiceCtrl.nowVoices[i];
+				MonoBehaviour hand = ParticleGroups[i].Hand;
 				Transform soundReference = particle.transform.parent;
-				var hitReactionPlayDel = (Func<AibuColliderKind, bool, bool>)Delegate.CreateDelegate(
-					typeof(Func<AibuColliderKind, bool, bool>), ParticleGroups[i].Hand, hitReactionPlayInfo);
 
 
 				if (SquirtHD.Value)
@@ -300,7 +299,8 @@ namespace KK_BetterSquirt
 
 					//Do not play twitch animation during orgasm, since orgasm already has its own animation
 					if (trigger != TriggerType.Orgasm)
-						burstActions += () => hitReactionPlayDel(AibuColliderKind.reac_bodydown, voiceState.state != HVoiceCtrl.VoiceKind.voice);
+						burstActions += () => 
+						hitReactionPlayInfo.Invoke(hand, new object[] { (int)AibuColliderKind.reac_bodydown, voiceState.state != HVoiceCtrl.VoiceKind.voice });
 
 					if (burstActions != null)
 						Instance.StartCoroutine(OnEachBurst(burstActions, burstTimes));
@@ -313,7 +313,7 @@ namespace KK_BetterSquirt
 
 					//Do not play twitch animation during orgasm, since orgasm already has its own animation
 					if (trigger != TriggerType.Orgasm)
-						hitReactionPlayDel(AibuColliderKind.reac_bodydown, voiceState.state != HVoiceCtrl.VoiceKind.voice);
+						hitReactionPlayInfo.Invoke(hand, new object[] { (int)AibuColliderKind.reac_bodydown, voiceState.state != HVoiceCtrl.VoiceKind.voice });
 				}
 
 				particle.Simulate(0f);
