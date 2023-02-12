@@ -108,7 +108,7 @@ namespace KK_BetterSquirt
 				//Do not play twitch animation during orgasm, since orgasm already has its own animation
 				if (trigger != TriggerType.Orgasm)
 					burstActions += () =>
-					hitReactionPlayInfo.Invoke(Hand, new object[] { (int)AibuColliderKind.reac_bodydown, Voice.state != HVoiceCtrl.VoiceKind.voice });
+					hitReactionPlayInfo.Invoke(Hand, new object[] { (int)AibuColliderKind.reac_bodydown, CheckTwitchSECond() });
 
 				if (burstActions != null)
 					StartCoroutine(OnEachBurst(burstActions, burstTimes));
@@ -121,7 +121,7 @@ namespace KK_BetterSquirt
 
 				//Do not play twitch animation during orgasm, since orgasm already has its own animation
 				if (trigger != TriggerType.Orgasm)
-					hitReactionPlayInfo.Invoke(Hand, new object[] { (int)AibuColliderKind.reac_bodydown, Voice.state != HVoiceCtrl.VoiceKind.voice });
+					hitReactionPlayInfo.Invoke(Hand, new object[] { (int)AibuColliderKind.reac_bodydown, CheckTwitchSECond() });
 			}
 
 			particle.Simulate(0f);
@@ -135,7 +135,7 @@ namespace KK_BetterSquirt
 		{
 			float lastTime = 0;
 
-			foreach (float burstTime in burstTimes)
+			foreach (float burstTime in burstTimes)	
 			{
 				//Delay each delegate invocation by the difference in time between the timestamps of each burst
 				yield return new WaitForSeconds(burstTime - lastTime);
@@ -144,6 +144,14 @@ namespace KK_BetterSquirt
 			}
 
 			yield return null;
+		}
+
+		private bool CheckTwitchSECond()
+		{
+			if (Flags.nowAnimStateName == "SLoop" && Flags.speedCalc >= 0.5f)
+				return false;
+			else
+				return Voice.state != HVoiceCtrl.VoiceKind.voice && Flags.nowAnimStateName != "OLoop";
 		}
 
 		private static bool PlaySetting(Utils.Sound.Setting setting, Transform referenceInfo)
