@@ -18,7 +18,7 @@ namespace KK_BetterSquirt
     {
         public const string PluginName = "KK_BetterSquirt";
         public const string GUID = "MK.KK_BetterSquirt";
-        public const string Version = "3.0.0";
+        public const string Version = "3.0.1";
 
 		internal const float DURATION_FULL = 4.8f;
 		internal const float DURATION_MIN = 1f;
