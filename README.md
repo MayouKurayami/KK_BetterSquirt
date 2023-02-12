@@ -1,4 +1,5 @@
 # KK_BetterSquirt
+> Makes manko go pew
 
 ## Dependencies
 - BepInEx 5.4.20
