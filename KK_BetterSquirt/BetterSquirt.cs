@@ -4,7 +4,6 @@ using BepInEx.Logging;
 using HarmonyLib;
 using KKAPI;
 using KKAPI.MainGame;
-using System;
 using System.ComponentModel;
 
 namespace KK_BetterSquirt
@@ -15,27 +14,31 @@ namespace KK_BetterSquirt
 	[BepInProcess(KoikatuAPI.GameProcessNameSteam)]
 	[BepInProcess(KoikatuAPI.VRProcessNameSteam)]
 	[BepInDependency(KoikatuAPI.GUID, KoikatuAPI.VersionConst)]
-    public class BetterSquirtPlugin : BaseUnityPlugin
+    public class BetterSquirt : BaseUnityPlugin
     {
         public const string PluginName = "KK_BetterSquirt";
-
         public const string GUID = "MK.KK_BetterSquirt";
-
         public const string Version = "1.0.1";
 
-        internal static new ManualLogSource Logger;
-		internal static ConfigEntry<SquirtMode> SquirtBehavior { get; private set; }
-		internal static ConfigEntry<KeyboardShortcut> SquirtKey { get; private set; }
-		internal static ConfigEntry<int> TouchChance { get; private set; }
-		internal static ConfigEntry<bool> SquirtHD { get; private set; }
-		internal static ConfigEntry<Behavior> SquirtDuration { get; private set; }
-		internal static ConfigEntry<Behavior> SquirtAmount { get; private set; }
+		internal const float DURATION_FULL = 4.8f;
+		internal const float DURATION_MIN = 1f;
+		internal const float COOLDOWN_PER_TOUCH = 1f;
+
+		internal static new ManualLogSource Logger;
+		internal static HFlag Flags;
+
+		internal static ConfigEntry<SquirtMode> Cfg_Behavior { get; private set; }
+		internal static ConfigEntry<KeyboardShortcut> Cfg_SquirtKey { get; private set; }
+		internal static ConfigEntry<int> Cfg_TouchChance { get; private set; }
+		internal static ConfigEntry<bool> Cfg_SquirtHD { get; private set; }
+		internal static ConfigEntry<Behavior> Cfg_Duration { get; private set; }
+		internal static ConfigEntry<Behavior> Cfg_Amount { get; private set; }
 
 		private void Awake()
         {
-            Logger = base.Logger;
+			Logger = base.Logger;
 
-			SquirtBehavior = Config.Bind(
+			Cfg_Behavior = Config.Bind(
 				section: "",
 				key: "Squirt Behavior",
 				defaultValue: SquirtMode.Aroused,
@@ -43,13 +46,13 @@ namespace KK_BetterSquirt
 				"\n\nIf Girls is Aroused: Girl squirts during orgasm if her excitement gauge is over 70" +
 				"\n\nAlways: Girl always squirts during orgasm");
 
-			SquirtKey = Config.Bind(
+			Cfg_SquirtKey = Config.Bind(
 				section: "",
 				key: "Squirt Shortcut Key",
 				defaultValue: KeyboardShortcut.Empty,
 				"Key to manually trigger squirting");
 
-			TouchChance = Config.Bind(
+			Cfg_TouchChance = Config.Bind(
 				section: "",
 				key: "Touch Sensitivity",
 				defaultValue: 25,
@@ -57,20 +60,20 @@ namespace KK_BetterSquirt
 				"\nSet to 0 to disable this feature",
 					new AcceptableValueRange<int>(0, 100)));
 
-			SquirtHD = Config.Bind(
+			Cfg_SquirtHD = Config.Bind(
 				section: "Better Squirt",
 				key: "Improved Particles",
 				defaultValue: true,
 				"Replaces vanilla squirt with a more realistic one");
 
-			SquirtDuration = Config.Bind(
+			Cfg_Duration = Config.Bind(
 				section: "Better Squirt",
 				key: "Manual Squirt Duration",
 				defaultValue: Behavior.Auto,
 				"Duration of the improved squirting when triggered manually by the hotkey" +
 				"\n\nIn auto mode it depends on the girl's excitement gauge");
 
-			SquirtAmount = Config.Bind(
+			Cfg_Amount = Config.Bind(
 				section: "Better Squirt",
 				key: "Manual Squirt Amount",
 				defaultValue: Behavior.Auto,
@@ -80,9 +83,9 @@ namespace KK_BetterSquirt
 
 
 			GameAPI.RegisterExtraBehaviour<BetterSquirtController>(GUID);
-			var harmonyInstance = Harmony.CreateAndPatchAll(typeof(BetterSquirtHooks), GUID);
+			var harmonyInstance = Harmony.CreateAndPatchAll(typeof(BetterSquirtController.Hooks), GUID);
 
-			BetterSquirtHooks.PatchVRHooks(harmonyInstance);
+			BetterSquirtController.Hooks.PatchVRHooksIfVR(harmonyInstance);
 		}
 
 		internal enum SquirtMode
@@ -100,6 +103,13 @@ namespace KK_BetterSquirt
 			Random,
 			Minimum,
 			Maximum
+		}
+
+		public enum TriggerType
+		{
+			Manual,
+			Orgasm,
+			Touch
 		}
 	}
 }

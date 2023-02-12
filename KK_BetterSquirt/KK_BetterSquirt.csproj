@@ -71,10 +71,10 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BetterSquirtHooks.cs" />
-    <Compile Include="BetterSquirtPlugin.cs" />
+    <Compile Include="BetterSquirt.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="BetterSquirtController.cs" />
+    <Compile Include="CharaSquirt.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
