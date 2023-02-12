@@ -61,8 +61,6 @@ namespace KK_BetterSquirt
 
 			//Default to full duration in case vanilla squirt is run
 			float duration = DURATION_FULL;
-			//Cache HVoiceCtrl.Voice to prevent race condition between the for loop iterator and coroutine 
-			MonoBehaviour hand = Hand;
 			Transform soundReference = particle.transform.parent;
 			Utils.Sound.Setting setting = new Utils.Sound.Setting
 			{
@@ -110,7 +108,7 @@ namespace KK_BetterSquirt
 				//Do not play twitch animation during orgasm, since orgasm already has its own animation
 				if (trigger != TriggerType.Orgasm)
 					burstActions += () =>
-					hitReactionPlayInfo.Invoke(hand, new object[] { (int)AibuColliderKind.reac_bodydown, Voice.state != HVoiceCtrl.VoiceKind.voice });
+					hitReactionPlayInfo.Invoke(Hand, new object[] { (int)AibuColliderKind.reac_bodydown, Voice.state != HVoiceCtrl.VoiceKind.voice });
 
 				if (burstActions != null)
 					StartCoroutine(OnEachBurst(burstActions, burstTimes));
@@ -123,7 +121,7 @@ namespace KK_BetterSquirt
 
 				//Do not play twitch animation during orgasm, since orgasm already has its own animation
 				if (trigger != TriggerType.Orgasm)
-					hitReactionPlayInfo.Invoke(hand, new object[] { (int)AibuColliderKind.reac_bodydown, Voice.state != HVoiceCtrl.VoiceKind.voice });
+					hitReactionPlayInfo.Invoke(Hand, new object[] { (int)AibuColliderKind.reac_bodydown, Voice.state != HVoiceCtrl.VoiceKind.voice });
 			}
 
 			particle.Simulate(0f);
