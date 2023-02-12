@@ -18,7 +18,7 @@ namespace KK_BetterSquirt
     {
         public const string PluginName = "KK_BetterSquirt";
         public const string GUID = "MK.KK_BetterSquirt";
-        public const string Version = "1.0.1";
+        public const string Version = "3.0.0";
 
 		internal const float DURATION_FULL = 4.8f;
 		internal const float DURATION_MIN = 1f;
@@ -55,7 +55,7 @@ namespace KK_BetterSquirt
 			Cfg_TouchChance = Config.Bind(
 				section: "",
 				key: "Touch Sensitivity",
-				defaultValue: 25,
+				defaultValue: 15,
 				new ConfigDescription("How frequently squirts are triggered when touching the girl's vagina/crotch. Affected by the girl's excitement gauge." +
 				"\nSet to 0 to disable this feature",
 					new AcceptableValueRange<int>(0, 100)));

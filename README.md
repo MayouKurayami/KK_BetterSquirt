@@ -17,7 +17,7 @@
 - **Squirt Shortcut Key** - Key to manually trigger squirting **(Default: None)**  
 
 - **Touch Sensitivity** - How frequently squirts triggered when touching the girl's vagina/crotch. Affected by the girl's excitement gauge.  
-  Set to 0 to disable this feature **(Default: 25)**
+  Set to 0 to disable this feature **(Default: 15)**
 
 - **Improved Particles** - Replaces vanilla squirt with a more realistic one **(Default: Enabled)**
 
