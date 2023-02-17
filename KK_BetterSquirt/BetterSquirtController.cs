@@ -253,10 +253,7 @@ namespace KK_BetterSquirt
 			}
 		}
 
-		/// <summary>
-		/// Accumulate the amount the user has dragged the vagina for and check if it has exceeded the threshold for the squirting procedure to proceed.
-		/// Not applicable in 3P
-		/// </summary>
+		//Not applicable in 3P
 		private static void OnDrag()
 		{
 			Vector2 currentDrag = Flags.xy[(int)AibuColliderKind.kokan - 2];

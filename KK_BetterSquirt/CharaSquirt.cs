@@ -274,7 +274,8 @@ namespace KK_BetterSquirt
 					//Clamp the value of the initial velocity within a subjectively reasonable range to lessen the fluctuation of the emission speed, which adds a bit more realism(TM)
 					initSpeed.AddKey(key.time + timeElapsed, Mathf.Clamp(key.value, 0.5f, 1f));
 				}
-				//Use the first Keyframe of the pattern and some more magic numbers as thresholds to determine whether the pattern is "bursty" enough
+				//Use the first Keyframe of the pattern and some more magic numbers as thresholds to determine whether the pattern is "bursty" enough, then add the time of the Keyframe to the list of burst timestamps.
+				//Or, unconditionally add the timestamp if timeElapsed is 0, since that means it's the beginning of squirt and we always want burst actions to run at that time
 				if ((pattern.keys.First().time < 0.3f && pattern.keys.First().value > 0.9f) || timeElapsed == 0)
 					burstTimes.Add(timeElapsed * DURATION_FULL);
 

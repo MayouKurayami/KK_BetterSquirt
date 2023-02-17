@@ -41,10 +41,15 @@
 ## Credit & Build Instructions
 This plugin utilizes the **AddCustomEffect** water stream mod by **pineapple#3977** on discord.  
 
+Special thanks to Yata for the idea.  
+
+<br>
+
 To build this plugin with it, download the *zipmod* at https://discord.com/channels/447114928785063977/447115303449657354/828310711301177364  
 (from the [English Koikatsu Discord Server](https://universalhentai.com/)).  
 
-Extract *addcustomeffect.unity3d* from the zipmod and place it into *\KK_BetterSquirt\Resources*.
+Extract *addcustomeffect.unity3d* from the zipmod and place it into *\KK_BetterSquirt\Resources*.  
+
 
 <br>
 <br>
