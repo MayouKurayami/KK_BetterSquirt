@@ -22,14 +22,15 @@ namespace KK_BetterSquirt
 		internal HVoiceCtrl.Voice Voice { get; private set; }
 
 		private float _touchCoolDown;
-		internal float TouchCooldown 
+		internal float TouchCooldown
 		{
 			get { return _touchCoolDown; }
-			set { 
-					if (value < 0) throw new ArgumentOutOfRangeException(); 
-					else _touchCoolDown = value; 
-				} 
-		}	
+			set
+			{
+				if (value < 0) throw new ArgumentOutOfRangeException();
+				else _touchCoolDown = value;
+			}
+		}
 
 		private static readonly MethodInfo hitReactionPlayInfo = AccessTools.Method(
 			Type.GetType("VRHandCtrl, Assembly-CSharp") ?? typeof(HandCtrl), "HitReactionPlay", new Type[] { typeof(int), typeof(bool) });
@@ -49,7 +50,7 @@ namespace KK_BetterSquirt
 				_touchCoolDown -= Time.deltaTime;
 		}
 
-		
+
 		public bool Squirt(bool softSE, TriggerType trigger, bool sound = true)
 		{
 			ParticleSystem particle = Cfg_SquirtHD.Value ? NewParticle : VanillaParticle;
@@ -73,16 +74,16 @@ namespace KK_BetterSquirt
 			if (Cfg_SquirtHD.Value)
 			{
 				GenerateSquirtParameters(trigger, out duration, out int streamCount);
-				AnimationCurve emissionCurve = GenerateSquirtPattern(duration, out AnimationCurve speedCurve, out List<float> burstTimes);
+				GenerateSquirtPattern(duration, out AnimationCurve emissionCurve, out AnimationCurve speedCurve, out List<float> burstTimes);
 
 				//Magic numbers for the minimum and maximum initial velocity are purely based on taste
-				ApplyCurve(particle.gameObject, emissionCurve, speedCurve, 5.5f, 6.5f);
+				ApplyCurve(particle.gameObject, speedCurve, 5.5f, 6.5f, emissionCurve);
 				foreach (GameObject gameObject in particle.gameObject.Children())
 				{
 					if (gameObject.name == "SubWaterStreamEffectCnstSpd5")
 					{
-						AnimationCurve subCurve = GenerateSquirtPattern(duration, out AnimationCurve subSpeed, out _);
-						ApplyCurve(gameObject, subCurve, subSpeed, 5.5f, 6.5f);
+						GenerateSquirtPattern(duration, out AnimationCurve subEmission, out AnimationCurve subSpeed, out _);
+						ApplyCurve(gameObject, subSpeed, 5.5f, 6.5f, subEmission);
 						gameObject.SetActive(streamCount > 1);
 					}
 					else if (gameObject.name == "SideWaterStreamEffectCnstSpd5")
@@ -135,7 +136,7 @@ namespace KK_BetterSquirt
 		{
 			float lastTime = 0;
 
-			foreach (float burstTime in burstTimes)	
+			foreach (float burstTime in burstTimes)
 			{
 				//Delay each delegate invocation by the difference in time between the timestamps of each burst
 				yield return new WaitForSeconds(burstTime - lastTime);
@@ -229,7 +230,7 @@ namespace KK_BetterSquirt
 		}
 
 
-		private static AnimationCurve GenerateSquirtPattern(float duration, out AnimationCurve initSpeed, out List<float> burstTimes)
+		private static void GenerateSquirtPattern(float duration, out AnimationCurve emissionCurve, out AnimationCurve initSpeed, out List<float> burstTimes)
 		{
 			//Each AnimationCurve here is a pre-defined pattern of squirting according to taste.
 			var patterns = new AnimationCurve[]
@@ -254,7 +255,7 @@ namespace KK_BetterSquirt
 			//Time value for each Keyframe is normalized between 0 and 1 relative to the total duration of the particle system.
 			//So we need to normalize the time value given by the caller
 			duration /= DURATION_FULL;
-			AnimationCurve emissionCurve = new AnimationCurve();
+			emissionCurve = new AnimationCurve();
 			initSpeed = new AnimationCurve();
 			burstTimes = new List<float>();
 			float timeElapsed = 0;
@@ -284,46 +285,34 @@ namespace KK_BetterSquirt
 			//Smoothly end the squirting AnimationCurve by bringing the emission down to 0 after a 0.5 second ramp down
 			emissionCurve.AddKey(duration + (0.5f / DURATION_FULL), 0);
 			initSpeed.AddKey(duration + (0.5f / DURATION_FULL), 0);
-
-			return emissionCurve;
 		}
 
 		/// <summary>
-		/// Apply two independent AnimationCurves to the emission and initial velocity of all ParticleSystems of a GameObject and its children, with the initial velocity's multipler picked randomly between a given range
+		/// Apply independent AnimationCurves to the initial velocity and optionally emission of all ParticleSystems of a GameObject and its children, with the initial velocity's multipler picked randomly between a given range
 		/// </summary>
 		/// <param name="minSpeed">lower bound of the possible multiplier value of the initial velocity curve</param>
 		/// <param name="maxSpeed">upper bound of the possible multiplier value of the initial velocity curve</param>
-		private static void ApplyCurve(GameObject particleGameObject, AnimationCurve emissionCurve, AnimationCurve speedCurve, float minSpeed, float maxSpeed)
+		private static void ApplyCurve(GameObject particleGameObject, AnimationCurve speedCurve, float minSpeed, float maxSpeed, AnimationCurve emissionCurve = null)
 		{
 			foreach (var particle in particleGameObject.GetComponentsInChildren<ParticleSystem>(true))
 			{
 				if (particle.main.duration == DURATION_FULL)
 				{
-					EmissionModule emission = particle.emission;
-					float multiplier = emission.rateOverTimeMultiplier;
-					emission.rateOverTime = new MinMaxCurve(multiplier, emissionCurve);
+					if (particle.main.startSpeed.mode != ParticleSystemCurveMode.Constant)
+					{
+						MainModule main = particle.main;
+						main.startSpeed = new MinMaxCurve(Random.Range(minSpeed, maxSpeed), speedCurve);
+					}
+
+					if (emissionCurve != null)
+					{
+						EmissionModule emission = particle.emission;
+						float multiplier = emission.rateOverTimeMultiplier;
+						emission.rateOverTime = new MinMaxCurve(multiplier, emissionCurve);
+					}
 				}
 			}
-			ApplyCurve(particleGameObject, speedCurve, minSpeed, maxSpeed);
 		}
 
-		/// <summary>
-		/// Apply an AnimationCurve to the initial velocity of all ParticleSystems of a GameObject and its children, with a multipler picked randomly between a given range
-		/// </summary>
-		/// <param name="minSpeed">lower bound of the possible multiplier value of the initial velocity curve</param>
-		/// <param name="maxSpeed">upper bound of the possible multiplier value of the initial velocity curve</param>
-		private static void ApplyCurve(GameObject particleGameObject, AnimationCurve speedCurve, float minSpeed, float maxSpeed)
-		{
-			foreach (var particle in particleGameObject.GetComponentsInChildren<ParticleSystem>(true))
-			{
-				if (particle.main.duration == DURATION_FULL && particle.main.startSpeed.mode != ParticleSystemCurveMode.Constant)
-				{
-					MainModule main = particle.main;
-					main.startSpeed = new MinMaxCurve(Random.Range(minSpeed, maxSpeed), speedCurve);
-				}
-			}
-		}
 	}
-
-
 }
