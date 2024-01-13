@@ -1,5 +1,7 @@
 # KK_BetterSquirt
 > Makes manko go pew
+> 
+> (demo: https://files.catbox.moe/jryeb0.webm)
 
 ## Dependencies
 - BepInEx 5.4.20
@@ -39,9 +41,9 @@
 
 
 ## Credit & Build Instructions
-This plugin utilizes the **AddCustomEffect** water stream mod by **pineapple#3977** on discord.  
+This plugin utilizes the **AddCustomEffect** water stream mod by **pineapple3977** on discord.  
 
-Special thanks to Yata for the idea.  
+Special thanks to [Yata](https://linktr.ee/yatadurian) for the idea.  
 
 <br>
 
