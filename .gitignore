@@ -341,4 +341,4 @@ healthchecksdb
 
 # Post Build Batch Files
 *.bat
-/KK_BetterSquirt/Resources/addcustomeffect.unity3d
+/Core_BetterSquirt/addcustomeffect.unity3d

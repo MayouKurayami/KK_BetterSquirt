@@ -33,7 +33,13 @@ namespace KK_BetterSquirt
 		}
 
 		private static readonly MethodInfo hitReactionPlayInfo = AccessTools.Method(
-			Type.GetType("VRHandCtrl, Assembly-CSharp") ?? typeof(HandCtrl), "HitReactionPlay", new Type[] { typeof(int), typeof(bool) });
+			Type.GetType("VRHandCtrl, Assembly-CSharp") ?? typeof(HandCtrl), 
+            nameof(HandCtrl.HitReactionPlay), 
+#if KK
+            new Type[] { typeof(int), typeof(bool) });
+#else
+            new Type[] { typeof(AibuColliderKind), typeof(bool) });
+#endif
 
 
 		internal void Init(ParticleSystem vanillaParticle, ParticleSystem newParticle, MonoBehaviour hand, HVoiceCtrl.Voice voice)
@@ -63,12 +69,20 @@ namespace KK_BetterSquirt
 			//Default to full duration in case vanilla squirt is run
 			float duration = DURATION_FULL;
 			Transform soundReference = particle.transform.parent;
+#if KK
 			Utils.Sound.Setting setting = new Utils.Sound.Setting
 			{
 				type = Manager.Sound.Type.GameSE3D,
 				assetBundleName = softSE ? @"sound/data/se/h/00/00_00.unity3d" : @"sound/data/se/h/12/12_00.unity3d",
 				assetName = softSE ? "khse_10" : "hse_siofuki",
 			};
+#else
+			Utils.Sound.Setting setting = new Utils.Sound.Setting(Manager.Sound.Type.GameSE3D)
+			{
+				bundle = @"sound/data/se/h/01.unity3d",
+				asset = softSE ? "hse_ks_10" : "hse_ks_siofuki",
+			};
+#endif
 
 
 			if (Cfg_SquirtHD.Value)
@@ -157,7 +171,7 @@ namespace KK_BetterSquirt
 
 		private static bool PlaySetting(Utils.Sound.Setting setting, Transform referenceInfo)
 		{
-			Transform soundsource = Utils.Sound.Play(setting);
+			Transform soundsource = Utils.Sound.Play(setting).transform;
 			if (soundsource != null)
 			{
 				soundsource.transform.SetParent(referenceInfo, false);

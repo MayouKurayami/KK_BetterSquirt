@@ -39,7 +39,7 @@ namespace KK_BetterSquirt
 		}
 
 
-		protected override void OnStartH(BaseLoader proc, HFlag hFlag, bool vr)
+		protected override void OnStartH(MonoBehaviour proc, HFlag hFlag, bool vr)
 		{
 			Flags = hFlag;
 			var procTraverse = Traverse.Create(proc);
@@ -57,7 +57,7 @@ namespace KK_BetterSquirt
 		}
 
 
-		public static bool InitParticles(BaseLoader proc)
+		public static bool InitParticles(MonoBehaviour proc)
 		{
 			if (!GameAPI.InsideHScene)
 			{
