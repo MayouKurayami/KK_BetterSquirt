@@ -32,14 +32,10 @@ namespace KK_BetterSquirt
 			}
 		}
 
-		private static readonly MethodInfo hitReactionPlayInfo = AccessTools.Method(
-			Type.GetType("VRHandCtrl, Assembly-CSharp") ?? typeof(HandCtrl), 
-            nameof(HandCtrl.HitReactionPlay), 
-#if KK
-            new Type[] { typeof(int), typeof(bool) });
-#else
-            new Type[] { typeof(AibuColliderKind), typeof(bool) });
-#endif
+		private static readonly MethodInfo hitReactionPlayInfo = 
+			Type.GetType("VRHandCtrl, Assembly-CSharp")?.GetMethod(nameof(HandCtrl.HitReactionPlay), AccessTools.all, null, new[] { typeof(int), typeof(bool) }, null) ?? 
+			typeof(HandCtrl).GetMethod(nameof(HandCtrl.HitReactionPlay), AccessTools.all, null, new[] { typeof(HandCtrl.AibuColliderKind), typeof(bool) }, null) ;
+
 
 
 		internal void Init(ParticleSystem vanillaParticle, ParticleSystem newParticle, MonoBehaviour hand, HVoiceCtrl.Voice voice)
