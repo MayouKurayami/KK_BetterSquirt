@@ -33,8 +33,8 @@ namespace KK_BetterSquirt
 		}
 
 		private static readonly MethodInfo hitReactionPlayInfo = 
-			Type.GetType("VRHandCtrl, Assembly-CSharp")?.GetMethod(nameof(HandCtrl.HitReactionPlay), AccessTools.all, null, new[] { typeof(int), typeof(bool) }, null) ?? 
-			typeof(HandCtrl).GetMethod(nameof(HandCtrl.HitReactionPlay), AccessTools.all, null, new[] { typeof(HandCtrl.AibuColliderKind), typeof(bool) }, null) ;
+			Type.GetType("VRHandCtrl, Assembly-CSharp")?.GetMethod("HitReactionPlay", AccessTools.all, null, new[] { typeof(int), typeof(bool) }, null) ?? 
+			typeof(HandCtrl).GetMethod("HitReactionPlay", AccessTools.all, null, new[] { typeof(HandCtrl.AibuColliderKind), typeof(bool) }, null) ;
 
 
 
