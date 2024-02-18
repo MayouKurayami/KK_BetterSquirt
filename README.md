@@ -1,11 +1,12 @@
 # KK_BetterSquirt
 > Makes manko go pew
-> 
+>
 > (demo: https://files.catbox.moe/jryeb0.webm)
+
 
 ## Dependencies
 - BepInEx 5.4.20
-- KKAPI 1.23
+- KKAPI 1.23 for KK, or KKSAPI 1.38 for KKS
 
 ## Configurations  
 
@@ -33,9 +34,10 @@
 
 
 ## Notes and Limitations
-- This plugin is for Koikatsu, not Koikatsu Sunshine
+- This plugin is for Koikatsu ~~, not Koikatsu Sunshine~~  
+ Ported to KKS by [ManlyMarco](https://github.com/ManlyMarco). (Not tested by me and incompatible with the KKS official VR module)
 
-- Supports official VR (JP and Steam)
+- Supports KK official VR (JP and Steam)
 
 - Unknown compatibility with kPlug  
 
@@ -50,7 +52,7 @@ Special thanks to [Yata](https://linktr.ee/yatadurian) for the idea.
 To build this plugin with it, download the *zipmod* at https://discord.com/channels/447114928785063977/447115303449657354/828310711301177364  
 (from the [English Koikatsu Discord Server](https://universalhentai.com/)).  
 
-Extract *addcustomeffect.unity3d* from the zipmod and place it into *\KK_BetterSquirt\Resources*.  
+Extract *addcustomeffect.unity3d* from the zipmod and place it into *\Core_BetterSquirt*.  
 
 
 <br>
