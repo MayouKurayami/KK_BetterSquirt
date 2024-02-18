@@ -33,9 +33,9 @@ namespace KK_BetterSquirt
 		}
 
 		//In KKS this would always return HandCtrl.HitReactionPlay() whether in VR or not
-		private static readonly MethodInfo hitReactionPlayInfo = 
-			Type.GetType("VRHandCtrl, Assembly-CSharp")?.GetMethod("HitReactionPlay", AccessTools.all, null, new[] { typeof(int), typeof(bool) }, null) ?? 
-			typeof(HandCtrl).GetMethod("HitReactionPlay", AccessTools.all, null, new[] { typeof(HandCtrl.AibuColliderKind), typeof(bool) }, null) ;
+		private static readonly MethodInfo hitReactionPlayInfo =
+			Type.GetType("VRHandCtrl, Assembly-CSharp")?.GetMethod("HitReactionPlay", AccessTools.all, null, new[] { typeof(int), typeof(bool) }, null) ??
+			typeof(HandCtrl).GetMethod("HitReactionPlay", AccessTools.all, null, new[] { typeof(HandCtrl.AibuColliderKind), typeof(bool) }, null);
 
 
 

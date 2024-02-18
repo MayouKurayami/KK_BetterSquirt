@@ -42,7 +42,7 @@ namespace KK_BetterSquirt
 		internal static ConfigEntry<Behavior> Cfg_Amount { get; private set; }
 
 		private void Awake()
-        {
+		{
 			Logger = base.Logger;
 
 			Cfg_Behavior = Config.Bind(

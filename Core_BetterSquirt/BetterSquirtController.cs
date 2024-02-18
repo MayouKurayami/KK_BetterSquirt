@@ -22,7 +22,7 @@ namespace KK_BetterSquirt
 
 		private static object _randSio;
 		private static Vector2 _lastDragVector;
-		
+
 
 		private void Update()
 		{
@@ -33,7 +33,7 @@ namespace KK_BetterSquirt
 			{
 				RunSquirts(softSE: true, trigger: TriggerType.Manual);
 			}
-				
+
 			if (Flags.drag)
 				OnDrag();
 		}
@@ -202,8 +202,8 @@ namespace KK_BetterSquirt
 		public static bool RunSquirts(bool softSE, TriggerType trigger, bool sound = true, MonoBehaviour handCtrl = null, bool setTouchCooldown = true)
 		{
 			bool anySquirtFired = false;
-			
-			foreach(CharaSquirt charaSquirt in CharaSquirtList)
+
+			foreach (CharaSquirt charaSquirt in CharaSquirtList)
 			{
 				//This makes sure that squirt only runs on the specific HandCtrl (female) that's associated with the ParticleSystem.
 				//Skip if there is only one charaSquirt loaded, meaning that there is only one female.
