@@ -16,11 +16,16 @@ namespace KK_BetterSquirt
 	[BepInProcess(KoikatuAPI.VRProcessNameSteam)]
 #endif
 	[BepInDependency(KoikatuAPI.GUID, KoikatuAPI.VersionConst)]
-    public class BetterSquirt : BaseUnityPlugin
-    {
-        public const string PluginName = "KK_BetterSquirt";
-        public const string GUID = "MK.KK_BetterSquirt";
-        public const string Version = "3.0.1";
+	public class BetterSquirt : BaseUnityPlugin
+	{
+#if KK
+		public const string PluginName = "KK_BetterSquirt";
+		public const string GUID = "MK.KK_BetterSquirt";
+#else
+		public const string PluginName = "KKS_BetterSquirt";
+		public const string GUID = "MK.KKS_BetterSquirt";
+#endif
+		public const string Version = "3.0.1";
 
 		internal const float DURATION_FULL = 4.8f;
 		internal const float DURATION_MIN = 1f;
