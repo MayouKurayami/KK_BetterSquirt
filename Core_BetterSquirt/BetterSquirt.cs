@@ -10,9 +10,11 @@ namespace KK_BetterSquirt
 {
 	[BepInPlugin(GUID, PluginName, Version)]
 	[BepInProcess(KoikatuAPI.GameProcessName)]
+#if KK
 	[BepInProcess(KoikatuAPI.VRProcessName)]
 	[BepInProcess(KoikatuAPI.GameProcessNameSteam)]
 	[BepInProcess(KoikatuAPI.VRProcessNameSteam)]
+#endif
 	[BepInDependency(KoikatuAPI.GUID, KoikatuAPI.VersionConst)]
     public class BetterSquirt : BaseUnityPlugin
     {

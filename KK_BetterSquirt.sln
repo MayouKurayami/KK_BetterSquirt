@@ -5,6 +5,10 @@ VisualStudioVersion = 17.4.33205.214
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KK_BetterSquirt", "KK_BetterSquirt\KK_BetterSquirt.csproj", "{959109C3-6EAC-443D-B6F4-15D50300DB12}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KKS_BetterSquirt", "KKS_BetterSquirt\KKS_BetterSquirt.csproj", "{F6E01A70-5104-45AD-A06D-53B42CF7D7C4}"
+EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Core_BetterSquirt", "Core_BetterSquirt\Core_BetterSquirt.shproj", "{1AC2928D-B7E9-4174-9F83-6FEFCA17EE87}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,11 +19,20 @@ Global
 		{959109C3-6EAC-443D-B6F4-15D50300DB12}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{959109C3-6EAC-443D-B6F4-15D50300DB12}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{959109C3-6EAC-443D-B6F4-15D50300DB12}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F6E01A70-5104-45AD-A06D-53B42CF7D7C4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F6E01A70-5104-45AD-A06D-53B42CF7D7C4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F6E01A70-5104-45AD-A06D-53B42CF7D7C4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F6E01A70-5104-45AD-A06D-53B42CF7D7C4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {B5B25F0B-658D-45C5-8653-94D04685F446}
+	EndGlobalSection
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		Core_BetterSquirt\Core_BetterSquirt.projitems*{1ac2928d-b7e9-4174-9f83-6fefca17ee87}*SharedItemsImports = 13
+		Core_BetterSquirt\Core_BetterSquirt.projitems*{959109c3-6eac-443d-b6f4-15d50300db12}*SharedItemsImports = 4
+		Core_BetterSquirt\Core_BetterSquirt.projitems*{f6e01a70-5104-45ad-a06d-53b42cf7d7c4}*SharedItemsImports = 4
 	EndGlobalSection
 EndGlobal

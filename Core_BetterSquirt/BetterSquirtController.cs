@@ -39,7 +39,11 @@ namespace KK_BetterSquirt
 		}
 
 
+#if KK
 		protected override void OnStartH(BaseLoader proc, HFlag hFlag, bool vr)
+#else
+		protected override void OnStartH(MonoBehaviour proc, HFlag hFlag, bool vr)
+#endif
 		{
 			Flags = hFlag;
 			var procTraverse = Traverse.Create(proc);
@@ -57,7 +61,7 @@ namespace KK_BetterSquirt
 		}
 
 
-		public static bool InitParticles(BaseLoader proc)
+		public static bool InitParticles(MonoBehaviour proc)
 		{
 			if (!GameAPI.InsideHScene)
 			{
@@ -73,7 +77,7 @@ namespace KK_BetterSquirt
 					if (charaSquirt.NewParticle != null)
 						Destroy(charaSquirt.NewParticle.gameObject);
 				}
-			}		
+			}
 
 			CharaSquirtList = new List<CharaSquirt>();
 
@@ -100,7 +104,7 @@ namespace KK_BetterSquirt
 			}
 			else
 				handCtrls = procTraverse.Field("vrHands").GetValue<MonoBehaviour[]>().ToList();
-						
+
 
 			for (int i = 0; i < vanillaParticles.Count; i++)
 			{
@@ -108,7 +112,7 @@ namespace KK_BetterSquirt
 				{
 					BetterSquirt.Logger.LogError("Null reference to vanilla ParticleSystem or HandCtrl. List index mismatch?");
 					continue;
-				}				
+				}
 
 				GameObject newGameObject = Instantiate(asset);
 				newGameObject.name = asset.name;
@@ -117,7 +121,7 @@ namespace KK_BetterSquirt
 				newGameObject.transform.localPosition = new Vector3(-0.01f, 0f, 0f);
 				newGameObject.transform.localRotation = Quaternion.Euler(new Vector3(60f, 0, 0f));
 				newGameObject.transform.localScale = Vector3.one;
-			
+
 				var charaSquirt = proc.gameObject.AddComponent<CharaSquirt>();
 				charaSquirt.Init(vanillaParticles[i], newGameObject.GetComponent<ParticleSystem>(), handCtrls[i], hVoiceCtrl.nowVoices[i]);
 				CharaSquirtList.Add(charaSquirt);
@@ -131,7 +135,7 @@ namespace KK_BetterSquirt
 				BetterSquirt.Logger.LogDebug("Failed to initialize particles");
 				return false;
 			}
-		
+
 			return true;
 		}
 
@@ -288,7 +292,7 @@ namespace KK_BetterSquirt
 					prefix: new HarmonyMethod(typeof(Hooks), nameof(OnCaressStart)));
 			}
 
-			
+
 			[HarmonyPostfix]
 			[HarmonyPatch(typeof(HActionBase), nameof(HActionBase.SetPlay))]
 			private static void OnOrgasm(string _nextAnimation)
