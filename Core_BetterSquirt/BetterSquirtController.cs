@@ -85,8 +85,16 @@ namespace KK_BetterSquirt
 			HVoiceCtrl hVoiceCtrl = procTraverse.Field("voice").GetValue<HVoiceCtrl>();
 			GameObject asset = GetParticleAsset();
 
+
+
 			//Get vanilla ParticleSystems that are not null, so theoretically there would be one ParticleSystem per female.
 			//"particle" corresponds to the first female, and "particle1" corresponds to the second female if she exists
+			// It does not correspond in KKS. All points at 0 index girl.
+
+
+
+
+#if KK
 			string[] particleFields = { "particle", "particle1" };
 			List<ParticleSystem> vanillaParticles = particleFields
 				.Select(field => procTraverse.Field(field).GetValue<HParticleCtrl>())
@@ -94,7 +102,32 @@ namespace KK_BetterSquirt
 				.Where(dic => dic != null && dic.TryGetValue(2, out ParticleInfo pInfo) && pInfo?.particle != null)
 				.Select(dic => dic[2].particle)
 				.ToList();
+#else
 
+			// We can't use 'HParticleCtrl' fields to determine active females in KKS
+			// as they both use the same dic to reference particles,
+			// which is readonly and points at first female.
+			// This also gets rid of KKS visual glitch where particles become opaque on certain backgrounds.
+			// Which is brought by 2 identical particles firing simultaneously.
+
+			var particleField = procTraverse.Field("particle").GetValue<HParticleCtrl>();
+			List<ParticleSystem> vanillaParticles = new List<ParticleSystem>()
+			{
+				particleField.dicParticle[2].particle,
+			};
+
+			var charas = procTraverse.Field("lstFemale").GetValue<List<ChaControl>>();
+			if (charas.Count > 1)
+			{
+				// There is no default particle on second chara.
+
+				var secondCharaAttachPoint = charas[1].objBodyBone.transform.Find("cf_n_height/cf_j_hips/cf_j_waist01/cf_j_waist02/cf_d_kokan/cf_j_kokan/cf_n_pee");
+				var particleCopy = Instantiate(particleField.dicParticle[2].particle);
+				particleCopy.transform.SetParent(secondCharaAttachPoint, false);
+				vanillaParticles.Add(particleCopy);
+			}
+
+#endif
 			//Get HandCtrl objects. Each one corresponds to each female
 			List<MonoBehaviour> handCtrls = new List<MonoBehaviour>();
 			if (Type.GetType("VRHScene, Assembly-CSharp") == null)
@@ -105,7 +138,6 @@ namespace KK_BetterSquirt
 			else
 				handCtrls = procTraverse.Field("vrHands").GetValue<MonoBehaviour[]>().ToList();
 
-
 			for (int i = 0; i < vanillaParticles.Count; i++)
 			{
 				if (vanillaParticles[i] == null || handCtrls[i] == null)
@@ -113,13 +145,15 @@ namespace KK_BetterSquirt
 					BetterSquirt.Logger.LogError("Null reference to vanilla ParticleSystem or HandCtrl. List index mismatch?");
 					continue;
 				}
+				// Because default in both games has weird offset (Vec3(0.01, -0.01, 0.02))
+				vanillaParticles[i].transform.parent.localPosition = new Vector3(0f, -0.01f, -0.01f);
 
 				GameObject newGameObject = Instantiate(asset);
 				newGameObject.name = asset.name;
 				newGameObject.transform.SetParent(vanillaParticles[i].transform.parent);
 				//Adjust the position and rotation of the new Particle System to make sure the stream comes out of the manko at the right place and the right angle
-				newGameObject.transform.localPosition = new Vector3(-0.01f, 0f, 0f);
-				newGameObject.transform.localRotation = Quaternion.Euler(new Vector3(60f, 0, 0f));
+				newGameObject.transform.localPosition = Vector3.zero;
+				newGameObject.transform.localRotation = Quaternion.Euler(new Vector3(Cfg_Angle.Value, 0f, 0f));
 				newGameObject.transform.localScale = Vector3.one;
 
 				var charaSquirt = proc.gameObject.AddComponent<CharaSquirt>();

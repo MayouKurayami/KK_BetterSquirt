@@ -40,6 +40,7 @@ namespace KK_BetterSquirt
 		internal static ConfigEntry<bool> Cfg_SquirtHD { get; private set; }
 		internal static ConfigEntry<Behavior> Cfg_Duration { get; private set; }
 		internal static ConfigEntry<Behavior> Cfg_Amount { get; private set; }
+		internal static ConfigEntry<float> Cfg_Angle { get; private set; }
 
 		private void Awake()
 		{
@@ -87,7 +88,12 @@ namespace KK_BetterSquirt
 				"Amount and volume of the improved squirting when triggered manually by the hotkey" +
 				"\n\nIn auto mode it depends on the girl's excitement gauge");
 
-
+			Cfg_Angle = Config.Bind(
+				section: "",
+				key: "Angle",
+				defaultValue: 60f,
+				new ConfigDescription("Angle",
+					new AcceptableValueRange<float>(45f, 90f)));
 
 			GameAPI.RegisterExtraBehaviour<BetterSquirtController>(GUID);
 			var harmonyInstance = Harmony.CreateAndPatchAll(typeof(BetterSquirtController.Hooks), GUID);

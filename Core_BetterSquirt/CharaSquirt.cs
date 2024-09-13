@@ -261,6 +261,25 @@ namespace KK_BetterSquirt
 					new Keyframe(2.4f/DURATION_FULL, Random.Range(0.9f, 1.2f)),
 					new Keyframe(2.7f/DURATION_FULL, Random.Range(0.1f, 0.3f)))
 
+				//new AnimationCurve(
+				//	new Keyframe(0.1f/DURATION_FULL, Random.Range(0.75f, 0.9f)),
+				//	new Keyframe(0.4f/DURATION_FULL, Random.Range(0.75f, 0.9f)),
+				//	new Keyframe(0.5f/DURATION_FULL, 0),
+				//	new Keyframe(0.7f/DURATION_FULL, Random.Range(0.1f, 0.3f))),
+
+				//new AnimationCurve(
+				//	new Keyframe(0.2f/DURATION_FULL, Random.Range(0.2f, 0.4f)),
+				//	new Keyframe(0.4f/DURATION_FULL, Random.Range(0.2f, 0.4f))),
+
+				//new AnimationCurve(
+				//	new Keyframe(0.1f/DURATION_FULL, Random.Range(0.9f, 1.1f)),
+				//	new Keyframe(0.2f/DURATION_FULL, 0),
+				//	new Keyframe(0.5f/DURATION_FULL, 0),
+				//	new Keyframe(0.6f/DURATION_FULL, Random.Range(0.1f, 0.3f))),
+
+				//new AnimationCurve(
+				//	new Keyframe(0.3f/DURATION_FULL, Random.Range(0.6f, 0.8f)),
+				//	new Keyframe(0.5f/DURATION_FULL, Random.Range(0.2f, 0.4f)))
 			};
 
 			//Time value for each Keyframe is normalized between 0 and 1 relative to the total duration of the particle system.
