@@ -46,14 +46,19 @@ namespace KK_BetterSquirt
 #endif
 		{
 			Flags = hFlag;
+			BetterSquirt.Logger.LogDebug($"OnStartH: proc={proc.GetType().Name}, vr={vr}");
 			var procTraverse = Traverse.Create(proc);
 
-			procTraverse
+			//lstProc is a List<HActionBase> in HSceneProc, but a List<VRHActionBase> in the KKS VR module (VRHActionBase does not inherit HActionBase)
+			//so it is enumerated as plain objects and the aibu action is identified by type name (HAibu or VRHAibu).
+			object aibu = procTraverse
 				.Field("lstProc")
-				.GetValue<List<HActionBase>>()
-				.OfType<HAibu>()
-				.FirstOrDefault()
-				.GetFieldValue("randSio", out _randSio);
+				.GetValue<System.Collections.IEnumerable>()
+				.Cast<object>()
+				.FirstOrDefault(action => action is HAibu || action.GetType().Name == "VRHAibu");
+			_randSio = aibu == null ? null : Traverse.Create(aibu).Field("randSio").GetValue();
+			if (_randSio == null)
+				BetterSquirt.Logger.LogWarning("Could not find randSio of the aibu action. Squirt Behavior setting may not apply to caress orgasm");
 
 			_lastDragVector = new Vector2(0.5f, 0.5f);
 
@@ -135,6 +140,8 @@ namespace KK_BetterSquirt
 				BetterSquirt.Logger.LogDebug("Failed to initialize particles");
 				return false;
 			}
+
+			BetterSquirt.Logger.LogDebug($"Initialized {CharaSquirtList.Count} CharaSquirt (vanilla particles: {vanillaParticles.Count}, hands: {handCtrls.Count})");
 
 			return true;
 		}
@@ -290,6 +297,13 @@ namespace KK_BetterSquirt
 				harmonyInstance.Patch(
 					AccessTools.Method(vrHandType, nameof(HandCtrl.JudgeProc)),
 					prefix: new HarmonyMethod(typeof(Hooks), nameof(OnCaressStart)));
+
+				//In KKS VR, the action classes inherit VRHActionBase instead of HActionBase, so HActionBase.SetPlay is never called there
+				Type vrActionBaseType = Type.GetType("VRHActionBase, Assembly-CSharp");
+				if (vrActionBaseType != null && !typeof(HActionBase).IsAssignableFrom(vrActionBaseType))
+					harmonyInstance.Patch(
+						AccessTools.Method(vrActionBaseType, nameof(HActionBase.SetPlay)),
+						postfix: new HarmonyMethod(typeof(Hooks), nameof(OnOrgasm)));
 			}
 
 
@@ -364,7 +378,8 @@ namespace KK_BetterSquirt
 			[HarmonyPatch(typeof(HandCtrl), "JudgeProc")]
 			private static void OnCaressStart(MonoBehaviour __instance)
 			{
-				if (Traverse.Create(__instance).Field("selectKindTouch").GetValue<AibuColliderKind>() == AibuColliderKind.kokan)
+				//VRHandCtrl in KKS VR has its own nested AibuColliderKind enum, so the value is compared as int
+				if (Convert.ToInt32(Traverse.Create(__instance).Field("selectKindTouch").GetValue()) == (int)AibuColliderKind.kokan)
 					RunSquirts(softSE: true, trigger: TriggerType.Touch);
 			}
 
