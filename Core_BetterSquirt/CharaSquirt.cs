@@ -32,9 +32,11 @@ namespace KK_BetterSquirt
 			}
 		}
 
-		//In KKS this would always return HandCtrl.HitReactionPlay() whether in VR or not
+		//In KK VR the first parameter of VRHandCtrl.HitReactionPlay() is an int, but in KKS VR it is VRHandCtrl's own nested AibuColliderKind enum.
+		//So the method is matched by name and the second (bool) parameter only. The first argument is passed as a boxed int either way.
 		private static readonly MethodInfo hitReactionPlayInfo =
-			Type.GetType("VRHandCtrl, Assembly-CSharp")?.GetMethod("HitReactionPlay", AccessTools.all, null, new[] { typeof(int), typeof(bool) }, null) ??
+			Type.GetType("VRHandCtrl, Assembly-CSharp")?.GetMethods(AccessTools.all)
+				.FirstOrDefault(m => m.Name == "HitReactionPlay" && m.GetParameters().Length == 2 && m.GetParameters()[1].ParameterType == typeof(bool)) ??
 			typeof(HandCtrl).GetMethod("HitReactionPlay", AccessTools.all, null, new[] { typeof(HandCtrl.AibuColliderKind), typeof(bool) }, null);
 
 

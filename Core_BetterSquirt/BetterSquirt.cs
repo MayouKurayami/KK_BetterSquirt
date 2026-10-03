@@ -14,6 +14,8 @@ namespace KK_BetterSquirt
 	[BepInProcess(KoikatuAPI.VRProcessName)]
 	[BepInProcess(KoikatuAPI.GameProcessNameSteam)]
 	[BepInProcess(KoikatuAPI.VRProcessNameSteam)]
+#else
+	[BepInProcess("KoikatsuSunshine_VR")]
 #endif
 	[BepInDependency(KoikatuAPI.GUID, KoikatuAPI.VersionConst)]
 	public class BetterSquirt : BaseUnityPlugin
