@@ -37,9 +37,9 @@
 - This plugin is for Koikatsu ~~, not Koikatsu Sunshine~~  
  Ported to KKS by [ManlyMarco](https://github.com/ManlyMarco). (Not tested by me)
 
-- Supports KKS official VR module (`KoikatsuSunshine_VR`). Tested for squirts on caress/intercourse orgasm and on touch; 3P is untested.
-
 - Supports KK official VR (JP and Steam)
+
+- Support for KKS official VR module (`KoikatsuSunshine_VR`): added and tested by [KKTTSPJ](https://github.com/KKTTSPJ)
 
 - Unknown compatibility with kPlug  
 
