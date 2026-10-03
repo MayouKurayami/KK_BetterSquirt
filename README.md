@@ -52,7 +52,7 @@ Special thanks to [Yata](https://linktr.ee/yatadurian) for the idea.
 <br>
 
 To build this plugin with it, download the *zipmod* at https://discord.com/channels/447114928785063977/447115303449657354/828310711301177364  
-(from the [English Koikatsu Discord Server](https://universalhentai.com/)).  
+(from the English Koikatsu Discord Server).  
 
 Extract *addcustomeffect.unity3d* from the zipmod and place it into *\Core_BetterSquirt*.  
 
