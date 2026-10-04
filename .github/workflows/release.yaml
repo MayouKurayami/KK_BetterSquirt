@@ -1,0 +1,96 @@
+name: Release
+
+on: workflow_dispatch
+
+permissions:
+  contents: write
+
+defaults:
+  run:
+    shell: bash # Git Bash on Windows
+
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 20
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Read version
+      id: info
+      run: |
+        VERSION=$(sed -n 's/.*const string Version = "\([^"]*\)".*/\1/p' Core_BetterSquirt/BetterSquirt.cs)
+        if [ -z "$VERSION" ]; then echo "Version constant not found in Core_BetterSquirt/BetterSquirt.cs" >&2; exit 1; fi
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+    - name: Download addcustomeffect.unity3d
+      env:
+        ASSET_URL: ${{ secrets.ADDCUSTOMEFFECT_URL }}
+      run: curl -sSfL -o Core_BetterSquirt/addcustomeffect.unity3d "$ASSET_URL"
+
+    - name: Find Visual Studio
+      shell: pwsh
+      run: |
+        $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+        $vs = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -format json | ConvertFrom-Json | Select-Object -First 1
+        "$($vs.displayName) $($vs.catalog.productDisplayVersion) at $($vs.installationPath)"
+        "MSBUILD=$($vs.installationPath)\MSBuild\Current\Bin\MSBuild.exe" >> $env:GITHUB_ENV
+        "DEVENV=$($vs.installationPath)\Common7\IDE\devenv.com" >> $env:GITHUB_ENV
+    - name: Restore NuGet packages, as Visual Studio does before a build
+      shell: pwsh
+      run: |
+        & $env:MSBUILD KK_BetterSquirt.sln -t:restore -nologo -v:minimal
+        if ($LASTEXITCODE) { exit $LASTEXITCODE }
+    - name: Build Release in Visual Studio
+      shell: pwsh
+      run: |
+        & $env:DEVENV KK_BetterSquirt.sln /Build "Release|Any CPU"
+        if ($LASTEXITCODE) { exit $LASTEXITCODE }
+
+    - name: Create release notes
+      continue-on-error: true
+      run: |
+        echo "## Changelog" >> body.md
+        LATEST_TAG=$(git describe --tags --abbrev=0)
+        git log $LATEST_TAG..HEAD --pretty=format:"* %s" >> body.md
+        echo "" >> body.md
+
+    - name: Add prerequisites and installation to release notes
+      run: |
+        cat >> body.md <<'EOF'
+
+        ## Prerequisites
+
+        - BepInEx 5.4.20 or above
+        - KKAPI 1.23 for KK, or KKSAPI 1.38 for KKS
+
+        ## Installation
+
+        - Download the respective zip file for either KK or KKS, then extract it into your game directory (where the game exe and BepInEx folder are located).
+        Replace old files if asked.
+        `KK_BetterSquirt.dll` or `KKS_BetterSquirt.dll` should end up in the *BepInEx\plugins* directory.
+
+        ## If you don't like the default behavior, check the README for configurations
+        EOF
+
+    - name: Create zips
+      shell: pwsh
+      run: |
+        New-Item -ItemType Directory -Force release | Out-Null
+        foreach ($dll in Get-ChildItem bin\Release -Filter *.dll) {
+          $name = $dll.BaseName
+          $plugins = "stage\$name\BepInEx\plugins"
+          New-Item -ItemType Directory -Force $plugins | Out-Null
+          Copy-Item $dll.FullName $plugins
+          Compress-Archive -Path "stage\$name\BepInEx" -DestinationPath "release\${name}_v${{ steps.info.outputs.version }}.zip"
+        }
+    - uses: softprops/action-gh-release@v3
+      with:
+        draft: true
+        name: ${{ github.event.repository.name }} ${{ steps.info.outputs.version }}
+        generate_release_notes: false
+        files: release/*.zip
+        tag_name: ${{ steps.info.outputs.version }}
+        target_commitish: ${{ github.sha }}
+        body_path: body.md
